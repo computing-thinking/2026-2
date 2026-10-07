@@ -69,6 +69,20 @@ def period(n, title, goals):
             f'<ul style="margin:10px 0 0 0;line-height:1.7;">{lis}</ul></div>')
 
 
+# ───────────────────────── 그림 (PNG → base64, Colab·JupyterLab 공용) ─────────────────────────
+import base64
+
+
+def img_fig(filename, caption, max_width=640):
+    """강의자료 폴더의 PNG 를 base64 로 본문에 넣는다. 외부 파일 없이 어디서 열어도 보인다."""
+    with open(os.path.join(DEST, filename), "rb") as f:
+        data = base64.b64encode(f.read()).decode("ascii")
+    return (f'<div style="text-align:center;margin:10px 0;{BOX}">'
+            f'<img src="data:image/png;base64,{data}" alt="{html.escape(caption)}" '
+            f'style="max-width:min(100%,{max_width}px);height:auto;background:#FFFFFF;border-radius:8px;padding:6px;">'
+            f'<div style="color:#6B7280;font-size:0.9em;margin-top:4px;">{fmt(caption)}</div></div>')
+
+
 BREAK = '<div style="text-align:center;color:#6B7280;">☕ 쉬는 시간 — 10분</div>'
 CHECK_HEAD = "# 🔍 자가 점검 — 수정하지 말고 실행만 하세요\n"
 
@@ -1018,6 +1032,13 @@ total = sum(n * n for n in range(1, 1000001))     # 하나씩 계산하며 바�
 첫 번째는 **스택(stack)** 입니다. 식당에 **쌓아 둔 접시**를 떠올리세요. 새 접시는 맨 위에 올리고, 꺼낼 때도 맨 위에서 꺼냅니다.
 그래서 **나중에 넣은 것이 먼저** 나옵니다. 이것을 후입선출(LIFO, Last In First Out)이라고 합니다.
 
+**동전 지갑**도 같습니다. 위가 열린 긴 통에 동전을 넣으면 맨 위에 쌓이고, 꺼낼 때도 맨 위 동전부터 나옵니다. 100원, 500원, 10원 순서로 넣었다면 가장 먼저 나오는 것은 **마지막에 넣은 10원**입니다.
+
+''' + img_fig("컴퓨팅사고_6주차_스택.png", "스택에 넣고(push) 꺼내기(pop). `top` 은 맨 위, 즉 가장 최근에 넣은 것을 가리킵니다.") + '''
+
+그림에서 `A` 부터 `E` 까지 차례로 넣으면(push) `top` 은 늘 **마지막에 넣은 것**입니다. 꺼내면(pop) `top` 에 있던 `E` 가 나가고 `D` 가 새 `top` 이 됩니다.
+리스트로 만들면 **맨 뒤**가 그림의 **맨 위(`top`)** 입니다. 넣기와 꺼내기를 모두 맨 뒤에서 합니다.
+
 | 스택이 하는 일 | 리스트로 쓰는 법 | 설명 |
 |:---|:---|:---|
 | 넣기 (push) | `stack.append(x)` | 맨 **뒤**에 넣기 |
@@ -1025,7 +1046,7 @@ total = sum(n * n for n in range(1, 1000001))     # 하나씩 계산하며 바�
 | 맨 위 보기 | `stack[-1]` | 꺼내지 않고 보기만 |
 | 비었는가 | `if stack:` | 5주차 — 빈 리스트는 거짓 |
 
-`append()` 는 5주차에 배웠습니다. 새로 나온 것은 `pop()` 하나입니다. **예상해 보기** — 아래 셀의 출력은?
+`append()` 는 5주차에 배웠습니다. 새로 나온 것은 `pop()` 하나입니다. 아래 셀은 동전 대신 글자 `A`, `B`, `C` 를 넣습니다. **예상해 보기** — 출력은?
 ''')
 
 code('''
@@ -1133,6 +1154,10 @@ md('''
 
 두 번째는 **큐(queue)** 입니다. 매표소 앞에 **줄 서기**를 떠올리세요. 새로 온 사람은 맨 뒤에 서고, 맨 앞사람부터 표를 삽니다.
 그래서 **먼저 넣은 것이 먼저** 나옵니다. 이것을 선입선출(FIFO, First In First Out)이라고 합니다.
+
+''' + img_fig("컴퓨팅사고_6주차_큐.png", "큐는 뒤(rear)로 들어와서 앞(front)으로 나갑니다. 먼저 들어온 것이 먼저 나갑니다.", max_width=760) + '''
+
+그림의 `IN` 쪽이 줄의 **뒤(rear)**, `OUT` 쪽이 **앞(front)** 입니다. 스택은 한쪽 끝에서만 넣고 꺼내지만, 큐는 **뒤로 넣고 앞에서 꺼냅니다.** 리스트로 만들면 넣기는 맨 뒤, 꺼내기는 맨 앞(0번)입니다.
 
 | 큐가 하는 일 | 리스트로 쓰는 법 | 설명 |
 |:---|:---|:---|
