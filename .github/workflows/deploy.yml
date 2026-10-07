@@ -20,9 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5      # Pages 가 꺼져 있으면 켭니다
-        with:
-          enablement: true
+      - uses: actions/configure-pages@v5      # 저장소 Settings → Pages 에서 Source 를 GitHub Actions 로 켜 두어야 합니다
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
