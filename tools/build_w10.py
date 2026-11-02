@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 예제 문제 5개: 하노이 탑 · 계단 오르기(피보나치) · 거스름돈 · 쾨니히스베르크 다리 · 미로 최단 경로
 # 사용: python build_w10.py           → 셀 구성만 점검(파일을 쓰지 않음)
 #       python build_w10.py --write   → 강의자료 폴더에 .ipynb 저장 (이미 있으면 중단)
-import hashlib, html, json, os, sys
+import base64, hashlib, html, json, os, sys
 from site_common import INTRO_SITE
 
 DEST = r"D:\AI융합과학원\학교강의\컴퓨팅사고\강의자료"
@@ -83,6 +83,16 @@ def problem(n, title, question):
             f'<span style="background:#F59E0B;color:#1F2937;padding:3px 14px;border-radius:999px;font-weight:bold;">문제 {n}</span>'
             f'&nbsp;&nbsp;<span style="font-size:1.3em;font-weight:bold;">{title}</span>'
             f'<div style="margin-top:8px;opacity:0.92;line-height:1.7;">{fmt(question)}</div></div>')
+
+
+def img_fig(filename, caption, max_width=760):
+    """강의자료 폴더의 PNG 를 base64 로 본문에 넣는다. 외부 파일 없이 어디서 열어도 보인다."""
+    with open(os.path.join(DEST, filename), "rb") as f:
+        data = base64.b64encode(f.read()).decode("ascii")
+    return (f'<div style="text-align:center;margin:10px 0;{BOX}">'
+            f'<img src="data:image/png;base64,{data}" alt="{html.escape(caption)}" '
+            f'style="max-width:min(100%,{max_width}px);height:auto;background:#FFFFFF;border-radius:8px;padding:6px;">'
+            f'<div style="color:#6B7280;font-size:0.9em;margin-top:4px;">{fmt(caption)}</div></div>')
 
 
 BREAK = '<div style="text-align:center;color:#6B7280;">☕ 쉬는 시간 — 10분</div>'
@@ -314,30 +324,34 @@ md('''
 md(key("재귀 정리", "① 재귀는 함수가 <b>같은 모양의 더 작은 문제</b>를 자기 자신에게 맡기는 것입니다.<br>② <b>멈추는 경우</b>와 <b>작아지는 문제</b> — 둘 다 있어야 합니다. 없으면 `RecursionError`.<br>③ 호출은 호출 스택에 쌓였다가 가장 나중 것부터 돌아옵니다. 7주차 2-6의 그림 그대로입니다.<br>④ 수학의 재귀적 정의($n! = n \\times (n-1)!$)는 코드로 거의 그대로 옮겨집니다."))
 
 # ── 문제 1 ──
-md("## 1-4. " + problem(1, "하노이 탑 (Tower of Hanoi)", "기둥 세 개 A · B · C 가 있고, A 에 크기가 다른 원판 n 개가 <b>큰 것이 아래</b>에 오도록 쌓여 있습니다. 모든 원판을 C 로 옮기세요. 규칙은 둘뿐입니다. ① 한 번에 원판 <b>하나</b>만 옮깁니다. ② <b>작은 원판 위에 큰 원판</b>을 올릴 수 없습니다. 원판이 64개일 때 몇 번 옮겨야 할까요?") + '''
+md("## 1-4. " + problem(1, "하노이 탑 (Tower of Hanoi)", "막대기 세 개 <b>source · temp · target</b> 이 있습니다. 서로 크기가 다른 원반 n 개가 <b>작은 것이 맨 위, 큰 것이 맨 아래</b>에 오도록 source 막대기에 꽂혀 있습니다. 이 원반들을 <b>target 막대기</b>로 옮기되, 옮긴 뒤에도 <b>같은 순서</b>로 쌓여 있어야 합니다. 조건은 두 가지입니다.<br>1. temp 막대기를 <b>중간 단계</b>로 활용할 수 있습니다.<br>2. 원반은 한 번에 하나씩 옮기며, 어느 막대기에서든 <b>항상 작은 원반이 큰 원반 위에</b> 오도록 옮겨야 합니다.<br>원반이 64개일 때 몇 번 옮겨야 할까요?") + '''
 
-1883년 프랑스 수학자 뤼카(Lucas)가 낸 퍼즐입니다. 원판 3개는 손으로 해 볼 만합니다. 7번이면 됩니다. 4개는 15번. 그런데 **방법을 말로 설명**하려면 막힙니다. “먼저 작은 걸 C 로, 그다음 중간 걸 B 로, 다시 작은 걸 B 로 …” 원판이 10개면 이 설명은 1,023 줄이 됩니다.
+''' + img_fig("컴퓨팅사고_10주차_하노이_문제.png", "시작 상태와 목표 상태. 원반 번호가 작을수록 작은 원반입니다.") + '''
 
-''' + think("분해 — 가장 큰 원판 하나만 생각한다", "원판 n 개를 A 에서 C 로 옮기는 일을 보지 말고, <b>맨 아래 가장 큰 원판 하나</b>만 봅니다. 이 원판이 C 로 가려면, 그 위에 있던 n−1 개가 <b>모두 B 에</b> 비켜 있어야 합니다. 그러면 일은 세 단계가 됩니다.<br>① 위의 n−1 개를 A 에서 B 로 옮긴다 (C 를 경유)<br>② 가장 큰 원판 하나를 A 에서 C 로 옮긴다<br>③ B 에 있던 n−1 개를 C 로 옮긴다 (A 를 경유)<br>①과 ③은 <b>원판 n−1 개를 옮기는 같은 문제</b>입니다. 기둥 이름만 다릅니다. “n−1 개를 어떻게 옮기는가”는 묻지 않습니다. 그것은 <b>같은 함수가 알아서</b> 합니다. 원판이 1개이면 그냥 옮깁니다 — 멈추는 경우.") + '''
+1883년 프랑스 수학자 뤼카(Lucas)가 낸 퍼즐입니다. 원반 3개는 손으로 해 볼 만합니다. 7번이면 됩니다. 4개는 15번. 그런데 **방법을 말로 설명**하려면 막힙니다. “먼저 원반 1을 target 으로, 그다음 원반 2를 temp 로, 다시 원반 1을 temp 로 …” 원반이 10개면 이 설명은 1,023 줄이 됩니다.
 
-세 단계를 코드로 옮기면 끝입니다. 함수 이름은 `hanoi(n, start, end, via)` — 원판 `n` 개를 `start` 에서 `end` 로, `via` 를 경유해 옮깁니다.
+''' + think("분해 — 가장 큰 원반 하나만 생각한다", "원반 n 개를 source 에서 target 으로 옮기는 일 전체를 보지 말고, <b>맨 아래 가장 큰 원반 하나</b>만 봅니다. 이 원반이 target 으로 가려면, 그 위에 있던 n−1 개가 <b>모두 temp 에</b> 비켜 있어야 합니다. 그러면 일은 세 단계가 됩니다.<br>① 위의 n−1 개를 source 에서 temp 로 옮긴다 (target 을 중간 단계로 씀)<br>② 가장 큰 원반 하나를 source 에서 target 으로 옮긴다<br>③ temp 에 있던 n−1 개를 target 으로 옮긴다 (source 를 중간 단계로 씀)<br>①과 ③은 <b>원반 n−1 개를 옮기는 같은 문제</b>입니다. 막대기 이름만 다릅니다. “n−1 개를 어떻게 옮기는가”는 묻지 않습니다. 그것은 <b>같은 함수가 알아서</b> 합니다. 원반이 1개이면 그냥 옮깁니다 — 멈추는 경우.") + '''
+
+''' + img_fig("컴퓨팅사고_10주차_하노이_분해.png", "원반 4개의 분해. ①과 ③은 ‘원반 3개 옮기기’ — 같은 문제가 더 작아진 것입니다. 원반 3개를 어떻게 옮기는지는 묻지 않습니다.", max_width=980) + '''
+
+세 단계를 코드로 옮기면 끝입니다. 함수 이름은 `hanoi(n, source, target, temp)` — 원반 `n` 개를 `source` 에서 `target` 으로, `temp` 를 중간 단계로 써서 옮깁니다. ①에서는 target 이, ③에서는 source 가 중간 단계가 되므로 **인자의 자리만 바뀝니다.**
 ''')
 
 code('''
-def hanoi(n, start, end, via):
-    """원판 n 개를 start 기둥에서 end 기둥으로 옮긴다. via 는 경유 기둥."""
-    if n == 1:                               # 멈추는 경우: 원판 하나는 그냥 옮긴다
-        print(f"원판 1 을 {start} → {end}")
+def hanoi(n, source, target, temp):
+    """원반 n 개를 source 막대기에서 target 막대기로 옮긴다. temp 는 중간 단계."""
+    if n == 1:                                   # 멈추는 경우: 원반 하나는 그냥 옮긴다
+        print(f"원반 1 을 {source} → {target}")
         return
-    hanoi(n - 1, start, via, end)            # ① 위의 n-1 개를 경유 기둥으로 비켜 둔다
-    print(f"원판 {n} 을 {start} → {end}")    # ② 가장 큰 원판을 목적지로
-    hanoi(n - 1, via, end, start)            # ③ 비켜 둔 n-1 개를 목적지로
+    hanoi(n - 1, source, temp, target)           # ① 위의 n-1 개를 temp 로 비켜 둔다 (target 이 중간 단계)
+    print(f"원반 {n} 을 {source} → {target}")    # ② 가장 큰 원반을 target 으로
+    hanoi(n - 1, temp, target, source)           # ③ 비켜 둔 n-1 개를 target 으로 (source 가 중간 단계)
 
-hanoi(3, "A", "C", "B")
+hanoi(3, "source", "target", "temp")
 ''')
 
 md('''
-출력된 7줄을 종이에 그려 가며 따라가 보세요. 규칙을 한 번도 어기지 않습니다. 코드 어디에도 “작은 원판 위에 큰 원판을 올리지 말라”는 검사가 **없는데도** 그렇습니다. 분해가 옳으면 규칙은 저절로 지켜집니다.
+출력된 7줄을 위 그림에 그려 가며 따라가 보세요. 규칙을 한 번도 어기지 않습니다. 코드 어디에도 “작은 원반 위에 큰 원반을 올리지 말라”는 검사가 **없는데도** 그렇습니다. 분해가 옳으면 규칙은 저절로 지켜집니다.
 
 `n = 4` 로 바꾸면 15줄이 나옵니다. **코드는 한 글자도 바뀌지 않습니다.** 1,023 줄짜리 설명을 쓰지 않아도 되는 이유입니다.
 
@@ -362,13 +376,13 @@ md('''
 
 code('''
 moves = 2 ** 64 - 1
-print(f"원판 64개: {moves:,} 번")
+print(f"원반 64개: {moves:,} 번")
 seconds = moves                           # 1초에 한 번 옮긴다면
 years = seconds / (60 * 60 * 24 * 365)
 print(f"1초에 한 번씩 옮기면 약 {years:,.0f} 년")
 ''')
 
-md(note("전설", "인도 베나레스의 사원에서 승려들이 황금 원판 64개를 옮기고 있으며, 다 옮기면 세상이 끝난다는 이야기가 퍼즐과 함께 전해집니다. 위 계산대로라면 약 5,850억 년이 걸리니 걱정하지 않아도 됩니다. 우주의 나이(약 138억 년)의 40배가 넘습니다. 이것이 <b>지수적 증가</b>($2^n$)의 크기입니다. 2교시에서 이 크기가 우리 코드 안에서 생기는 것을 보게 됩니다."))
+md(note("전설", "인도 베나레스의 사원에서 승려들이 황금 원반 64개를 옮기고 있으며, 다 옮기면 세상이 끝난다는 이야기가 퍼즐과 함께 전해집니다. 위 계산대로라면 약 5,850억 년이 걸리니 걱정하지 않아도 됩니다. 우주의 나이(약 138억 년)의 40배가 넘습니다. 이것이 <b>지수적 증가</b>($2^n$)의 크기입니다. 2교시에서 이 크기가 우리 코드 안에서 생기는 것을 보게 됩니다."))
 
 md('''
 ## 1-5. 재귀와 반복 — 무엇을 쓸까
@@ -399,7 +413,7 @@ md('''
 선택 기준은 하나입니다. **문제의 정의가 재귀적이면 재귀, 아니면 반복.** 하노이 탑은 정의 자체가 “n−1 개 문제”를 품고 있으니 재귀입니다.
 ''')
 
-md(key("1-4 ~ 1-5 정리", "① 하노이 탑의 열쇠는 <b>가장 큰 원판 하나만 보는 것</b>입니다. 나머지 n−1 개는 같은 문제이므로 함수 자신에게 맡깁니다.<br>② 분해가 옳으면 규칙 검사 없이도 규칙이 지켜집니다. 코드는 짧고, n 이 커져도 바뀌지 않습니다.<br>③ 작은 경우를 나열해 규칙($2^n - 1$)을 찾는 것이 패턴 인식입니다.<br>④ 가지를 치는 문제는 재귀, 한 줄로 가는 문제는 반복."))
+md(key("1-4 ~ 1-5 정리", "① 하노이 탑의 열쇠는 <b>가장 큰 원반 하나만 보는 것</b>입니다. 나머지 n−1 개는 같은 문제이므로 함수 자신에게 맡깁니다.<br>② 분해가 옳으면 규칙 검사 없이도 규칙이 지켜집니다. 코드는 짧고, n 이 커져도 바뀌지 않습니다.<br>③ 작은 경우를 나열해 규칙($2^n - 1$)을 찾는 것이 패턴 인식입니다.<br>④ 가지를 치는 문제는 재귀, 한 줄로 가는 문제는 반복."))
 
 # ── 1교시 실습 ──
 practice("✏️ 실습 1-1", "자릿수의 합 — 재귀로", "약 4분",
@@ -452,7 +466,7 @@ print(power(1.5, 3))       # 3.375
 ''', raises=True)
 
 practice("✏️ 실습 1-3", "하노이 탑 — 이동 목록 돌려주기", "약 6분",
-         "1-4의 `hanoi` 는 `print` 를 했습니다. 이번에는 이동을 <b>리스트로 모아 돌려주는</b> `hanoi_moves(n, start, end, via)` 를 쓰세요. 각 이동은 `(출발, 도착)` 튜플입니다.<br>힌트: 멈추는 경우는 `[(start, end)]` 하나짜리 리스트. 작아지는 경우는 ① 의 리스트 + `[(start, end)]` + ③ 의 리스트 — 리스트 덧셈(5주차)으로 이어 붙입니다.<br>`hanoi_moves(2, \"A\", \"C\", \"B\")` → `[(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"C\")]`",
+         "1-4의 `hanoi` 는 `print` 를 했습니다. 이번에는 이동을 <b>리스트로 모아 돌려주는</b> `hanoi_moves(n, source, target, temp)` 를 쓰세요. 각 이동은 `(출발 막대기, 도착 막대기)` 튜플입니다.<br>힌트: 멈추는 경우는 `[(source, target)]` 하나짜리 리스트. 작아지는 경우는 ① 의 리스트 + `[(source, target)]` + ③ 의 리스트 — 리스트 덧셈(5주차)으로 이어 붙입니다.<br>`hanoi_moves(2, \"A\", \"C\", \"B\")` → `[(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"C\")]` (막대기 이름은 아무 문자열이나 됩니다)",
          '''
 # 여기에 함수를 정의하세요
 
@@ -463,19 +477,19 @@ print(moves)
 ''',
          'hanoi_moves(1, "A", "C", "B") == [("A", "C")] and hanoi_moves(2, "A", "C", "B") == [("A", "B"), ("A", "C"), ("B", "C")] and len(hanoi_moves(3, "A", "C", "B")) == 7 and hanoi_moves(3, "A", "C", "B")[3] == ("A", "C") and len(hanoi_moves(10, "A", "C", "B")) == 1023',
          '''
-def hanoi_moves(n, start, end, via):
+def hanoi_moves(n, source, target, temp):
     if n == 1:
-        return [(start, end)]
-    return (hanoi_moves(n - 1, start, via, end)      # ① 위의 n-1 개를 경유 기둥으로
-            + [(start, end)]                         # ② 가장 큰 원판
-            + hanoi_moves(n - 1, via, end, start))   # ③ 비켜 둔 n-1 개를 목적지로
+        return [(source, target)]
+    return (hanoi_moves(n - 1, source, temp, target)      # ① 위의 n-1 개를 temp 로
+            + [(source, target)]                          # ② 가장 큰 원반
+            + hanoi_moves(n - 1, temp, target, source))   # ③ 비켜 둔 n-1 개를 target 으로
 
 moves = hanoi_moves(3, "A", "C", "B")
 print(len(moves), "번")                 # 7 번
 print(moves)
 ''', raises=True)
 
-md(key("1교시 정리", "① 재귀 = 같은 모양의 더 작은 문제를 자기 자신에게 맡기기. <b>멈추는 경우</b>와 <b>작아지는 문제</b>가 필요합니다.<br>② 하노이 탑은 ‘가장 큰 원판 하나’만 보면 세 줄로 풀립니다. 이것이 <b>분해</b>입니다.<br>③ 작은 경우를 나열해 $2^n - 1$ 을 찾는 것이 <b>패턴 인식</b>입니다. 64개면 우주 나이의 40배.<br>④ 가지를 치는 문제는 재귀, 한 줄로 가는 문제는 반복.") + "\n\n" + BREAK)
+md(key("1교시 정리", "① 재귀 = 같은 모양의 더 작은 문제를 자기 자신에게 맡기기. <b>멈추는 경우</b>와 <b>작아지는 문제</b>가 필요합니다.<br>② 하노이 탑은 ‘가장 큰 원반 하나’만 보면 세 줄로 풀립니다. 이것이 <b>분해</b>입니다.<br>③ 작은 경우를 나열해 $2^n - 1$ 을 찾는 것이 <b>패턴 인식</b>입니다. 64개면 우주 나이의 40배.<br>④ 가지를 치는 문제는 재귀, 한 줄로 가는 문제는 반복.") + "\n\n" + BREAK)
 
 # ═════════════════════════ 2교시 ═════════════════════════
 md("# 2교시 · 동적 프로그래밍 — 작은 답을 기억해 큰 답을 만들다\n\n" + period(2, "계단 오르기와 거스름돈", [
@@ -651,7 +665,7 @@ md('''
 | **겹치는 부분 문제** | 같은 작은 문제가 여러 번 나온다 | `climb(3)` 이 `climb(4)` 와 `climb(5)` 양쪽에서 필요 |
 | **최적 부분 구조** | 큰 문제의 답이 작은 문제의 답으로 만들어진다 | f(n) = f(n−1) + f(n−2) |
 
-하노이 탑은 두 번째는 있지만 첫 번째가 없습니다. `hanoi(n-1, A, B)` 와 `hanoi(n-1, B, C)` 는 기둥이 달라 **다른 문제**라 적어 둘 것이 없습니다. 그래서 하노이 탑은 $2^n - 1$ 번보다 빨라질 수 없고, 계단 오르기는 n 번이면 됩니다. **같은 재귀라도 겹치는 부분이 있는지**가 운명을 가릅니다.
+하노이 탑은 두 번째는 있지만 첫 번째가 없습니다. ①의 `hanoi(n-1, source, temp, …)` 와 ③의 `hanoi(n-1, temp, target, …)` 는 막대기가 달라 **다른 문제**라 적어 둘 것이 없습니다. 그래서 하노이 탑은 $2^n - 1$ 번보다 빨라질 수 없고, 계단 오르기는 n 번이면 됩니다. **같은 재귀라도 겹치는 부분이 있는지**가 운명을 가릅니다.
 ''')
 
 md(key("세 가지 풀이 비교", "<table style='border-collapse:collapse;'><tr><th style='text-align:left;padding:2px 10px;'>방법</th><th style='text-align:left;padding:2px 10px;'>생각의 방향</th><th style='text-align:left;padding:2px 10px;'>climb(30) 의 일</th><th style='text-align:left;padding:2px 10px;'>장단점</th></tr><tr><td style='padding:2px 10px;'>단순 재귀</td><td style='padding:2px 10px;'>점화식 그대로</td><td style='padding:2px 10px;'>약 270만 번 호출</td><td style='padding:2px 10px;'>가장 읽기 쉬움 · 지수적으로 느림</td></tr><tr><td style='padding:2px 10px;'>메모이제이션</td><td style='padding:2px 10px;'>위에서 아래로, 적어 두며</td><td style='padding:2px 10px;'>약 60 번 호출</td><td style='padding:2px 10px;'>재귀 코드에 세 줄만 추가 · 깊은 재귀는 스택 한계</td></tr><tr><td style='padding:2px 10px;'>표 채우기(DP)</td><td style='padding:2px 10px;'>아래에서 위로</td><td style='padding:2px 10px;'>반복 28 번</td><td style='padding:2px 10px;'>재귀 없음 · 가장 빠름 · 채우는 순서를 정해야 함</td></tr></table>셋 다 <b>같은 점화식</b>에서 나옵니다. 점화식을 찾는 것이 일의 90% 입니다."))
@@ -1172,7 +1186,7 @@ md('''
 | **탐욕법** | 매 순간 최선 — 빠르지만 반례가 있을 수 있다 |
 | **그래프** | `{정점: [이웃들]}`. 차수 = 이웃 수 |
 | **BFS** | 큐 + 가 본 곳 표시. 처음 도착 = 최단 거리 |
-| **지수적 증가** | $2^n$ — 64개 원판은 우주 나이의 40배. 알고리듬 선택이 컴퓨터 성능보다 중요한 이유 |
+| **지수적 증가** | $2^n$ — 64개 원반은 우주 나이의 40배. 알고리듬 선택이 컴퓨터 성능보다 중요한 이유 |
 
 ### 오늘 만난 오류와 신호
 
