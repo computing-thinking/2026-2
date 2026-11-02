@@ -95,6 +95,140 @@ def img_fig(filename, caption, max_width=760):
             f'<div style="color:#6B7280;font-size:0.9em;margin-top:4px;">{fmt(caption)}</div></div>')
 
 
+# 1-4 하노이 탑 게임 — 셀을 실행하면 HTML + JavaScript 게임판이 출력에 나타난다 (JupyterLab 은 실행된 셀의 HTML 출력 안 <script> 를 실행한다)
+GAME_CELL = r'''
+#@title ▶ 실행하세요 — 하노이 탑 직접 해 보기 (막대기를 두 번 눌러 원반을 옮깁니다)
+from IPython.display import HTML, display
+import random
+
+_uid = f"hanoi{random.randint(0, 10 ** 9)}"      # 셀을 여러 번 실행해도 게임끼리 섞이지 않게 하는 이름표
+
+_game = r"""
+<div id="UID" style="box-sizing:border-box;max-width:100%;font-family:'Malgun Gothic',sans-serif;color:#1F2937;background:#FFFFFF;border:2px solid #0EA5A4;border-radius:12px;padding:12px 16px;">
+  <div style="display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:8px;">
+    <b style="color:#0EA5A4;">🎮 하노이 탑</b>
+    <label>원반 수
+      <select class="hn-count" style="font-size:1em;padding:2px 6px;margin-left:4px;">
+        <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option>
+      </select>
+    </label>
+    <button class="hn-reset" style="background:#F3F4F6;color:#1F2937;border:1px solid #6B7280;border-radius:6px;padding:3px 12px;cursor:pointer;">다시 시작</button>
+    <button class="hn-solve" style="background:#0EA5A4;color:#FFFFFF;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;">자동으로 풀기</button>
+    <span style="margin-left:auto;">옮긴 횟수 <b class="hn-moves" style="color:#FF6B5A;font-size:1.2em;">0</b> &nbsp;/&nbsp; 최소 <b class="hn-min">7</b> 번</span>
+  </div>
+  <div class="hn-board" style="display:flex;justify-content:space-around;align-items:flex-end;height:190px;background:#F9FAFB;border-radius:8px;padding:10px 6px 0;position:relative;">
+  </div>
+  <div style="display:flex;justify-content:space-around;margin-top:4px;font-family:Consolas,monospace;font-weight:bold;"><span>source</span><span>temp</span><span>target</span></div>
+  <div class="hn-msg" style="min-height:1.6em;margin-top:6px;color:#6B7280;">막대기를 누르면 맨 위 원반을 집고, 다른 막대기를 누르면 그곳에 놓습니다.</div>
+</div>
+<script>
+(function () {
+  const root = document.getElementById("UID");
+  if (!root) return;
+  const COLORS = ["#FDE68A", "#FCA5A5", "#93C5FD", "#86EFAC", "#C4B5FD"];
+  const board = root.querySelector(".hn-board");
+  const msg = root.querySelector(".hn-msg");
+  const movesEl = root.querySelector(".hn-moves");
+  const minEl = root.querySelector(".hn-min");
+  const countSel = root.querySelector(".hn-count");
+  let n = 3, stacks = [[], [], []], selected = null, moves = 0, busy = false, timer = null;
+
+  function reset() {
+    if (timer) { clearInterval(timer); timer = null; }
+    busy = false;
+    n = parseInt(countSel.value, 10);
+    stacks = [[], [], []];
+    for (let d = n; d >= 1; d--) stacks[0].push(d);      // 큰 것(n)이 아래, 작은 것(1)이 위
+    selected = null; moves = 0;
+    minEl.textContent = (2 ** n - 1);
+    say("막대기를 누르면 맨 위 원반을 집고, 다른 막대기를 누르면 그곳에 놓습니다.", "#6B7280");
+    render();
+  }
+  function say(text, color) { msg.textContent = text; msg.style.color = color || "#6B7280"; }
+  function render() {
+    movesEl.textContent = moves;
+    board.innerHTML = "";
+    stacks.forEach((stack, i) => {
+      const peg = document.createElement("div");
+      peg.style.cssText = "flex:1;height:100%;display:flex;flex-direction:column-reverse;align-items:center;cursor:pointer;position:relative;border-radius:8px;";
+      if (selected === i) peg.style.background = "#E6F7F6";
+      const rod = document.createElement("div");
+      rod.style.cssText = "position:absolute;bottom:0;width:8px;height:150px;background:#6B7280;border-radius:4px 4px 0 0;";
+      const base = document.createElement("div");
+      base.style.cssText = "width:92%;height:10px;background:#6B7280;border-radius:3px;";
+      peg.appendChild(rod); peg.appendChild(base);
+      stack.forEach((d, level) => {
+        const disk = document.createElement("div");
+        const top = (level === stack.length - 1) && selected === i;
+        disk.style.cssText = "height:24px;margin-top:3px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;z-index:1;" +
+          "width:" + (28 + d * 13) + "%;background:" + COLORS[d - 1] + ";border:2px solid " + (top ? "#FF6B5A" : "#1F2937") + ";" +
+          (top ? "transform:translateY(-14px);box-shadow:0 4px 8px rgba(0,0,0,0.2);" : "");
+        disk.textContent = d;
+        peg.appendChild(disk);
+      });
+      peg.addEventListener("click", () => click(i));
+      board.appendChild(peg);
+    });
+  }
+  function tryMove(from, to) {
+    const a = stacks[from], b = stacks[to];
+    if (a.length === 0) return false;
+    const d = a[a.length - 1];
+    if (b.length > 0 && b[b.length - 1] < d) return false;    // 작은 원반 위에 큰 원반 — 금지
+    b.push(a.pop()); moves += 1;
+    return true;
+  }
+  function click(i) {
+    if (busy) return;
+    if (selected === null) {
+      if (stacks[i].length === 0) { say("빈 막대기입니다. 원반이 있는 막대기를 누르세요.", "#6B7280"); return; }
+      selected = i; say("원반 " + stacks[i][stacks[i].length - 1] + " 을 집었습니다. 놓을 막대기를 누르세요.", "#0EA5A4");
+    } else if (selected === i) {
+      selected = null; say("내려놓았습니다.", "#6B7280");
+    } else {
+      const d = stacks[selected][stacks[selected].length - 1];
+      if (tryMove(selected, i)) {
+        say("원반 " + d + " 을 옮겼습니다.", "#6B7280");
+        if (stacks[2].length === n) {
+          const best = 2 ** n - 1;
+          say("🎉 완료! " + moves + " 번 만에 옮겼습니다." + (moves === best ? " 최소 횟수입니다!" : " (최소는 " + best + " 번)"), "#FF6B5A");
+        }
+      } else {
+        say("⛔ 규칙 위반: 작은 원반(" + stacks[i][stacks[i].length - 1] + ") 위에 큰 원반(" + d + ")을 올릴 수 없습니다.", "#FF6B5A");
+      }
+      selected = null;
+    }
+    render();
+  }
+  function solve() {                                   // 1-4 의 hanoi() 와 같은 재귀로 이동 목록을 만든 뒤 한 걸음씩 보여 줍니다
+    reset();
+    const plan = [];
+    function hanoi(k, source, target, temp) {
+      if (k === 1) { plan.push([source, target]); return; }
+      hanoi(k - 1, source, temp, target);
+      plan.push([source, target]);
+      hanoi(k - 1, temp, target, source);
+    }
+    hanoi(n, 0, 2, 1);
+    busy = true; say("재귀가 만든 " + plan.length + " 번의 이동을 차례로 보여 줍니다…", "#0EA5A4");
+    let step = 0;
+    timer = setInterval(() => {
+      if (step >= plan.length) { clearInterval(timer); timer = null; busy = false; say("🎉 완료! " + moves + " 번 = 2^" + n + " − 1", "#FF6B5A"); render(); return; }
+      const [from, to] = plan[step++];
+      tryMove(from, to); render();
+    }, Math.max(120, 700 - n * 110));
+  }
+  root.querySelector(".hn-reset").addEventListener("click", reset);
+  root.querySelector(".hn-solve").addEventListener("click", solve);
+  countSel.addEventListener("change", reset);
+  reset();
+})();
+</script>
+"""
+
+display(HTML(_game.replace("UID", _uid)))
+'''
+
 BREAK = '<div style="text-align:center;color:#6B7280;">☕ 쉬는 시간 — 10분</div>'
 CHECK_HEAD = "# 🔍 자가 점검 — 수정하지 말고 실행만 하세요\n"
 
@@ -328,13 +462,23 @@ md("## 1-4. " + problem(1, "하노이 탑 (Tower of Hanoi)", "막대기 세 개 
 
 ''' + img_fig("컴퓨팅사고_10주차_하노이_문제.png", "시작 상태와 목표 상태. 원반 번호가 작을수록 작은 원반입니다.") + '''
 
+### 직접 해 보기
+
+코드를 쓰기 전에 손으로 먼저 풀어 봅니다. 아래 셀을 실행하면 게임판이 나타납니다. 막대기를 누르면 맨 위 원반을 집고, 다른 막대기를 누르면 그곳에 놓습니다. 규칙에 어긋나면 옮겨지지 않습니다.
+
+원반 3개를 **7번** 만에, 4개를 **15번** 만에 옮겨 보세요. 되었다면 5개는 몇 번일지 **먼저 예상**하고 해 보세요. 그리고 생각해 보세요 — **원반 4를 옮기기 직전**, 나머지 원반 세 개는 어디에 있어야 할까요?
+''')
+
+code(GAME_CELL, form=True)
+
+md('''
 1883년 프랑스 수학자 뤼카(Lucas)가 낸 퍼즐입니다. 원반 3개는 손으로 해 볼 만합니다. 7번이면 됩니다. 4개는 15번. 그런데 **방법을 말로 설명**하려면 막힙니다. “먼저 원반 1을 target 으로, 그다음 원반 2를 temp 로, 다시 원반 1을 temp 로 …” 원반이 10개면 이 설명은 1,023 줄이 됩니다.
 
 ''' + think("분해 — 가장 큰 원반 하나만 생각한다", "원반 n 개를 source 에서 target 으로 옮기는 일 전체를 보지 말고, <b>맨 아래 가장 큰 원반 하나</b>만 봅니다. 이 원반이 target 으로 가려면, 그 위에 있던 n−1 개가 <b>모두 temp 에</b> 비켜 있어야 합니다. 그러면 일은 세 단계가 됩니다.<br>① 위의 n−1 개를 source 에서 temp 로 옮긴다 (target 을 중간 단계로 씀)<br>② 가장 큰 원반 하나를 source 에서 target 으로 옮긴다<br>③ temp 에 있던 n−1 개를 target 으로 옮긴다 (source 를 중간 단계로 씀)<br>①과 ③은 <b>원반 n−1 개를 옮기는 같은 문제</b>입니다. 막대기 이름만 다릅니다. “n−1 개를 어떻게 옮기는가”는 묻지 않습니다. 그것은 <b>같은 함수가 알아서</b> 합니다. 원반이 1개이면 그냥 옮깁니다 — 멈추는 경우.") + '''
 
 ''' + img_fig("컴퓨팅사고_10주차_하노이_분해.png", "원반 4개의 분해. ①과 ③은 ‘원반 3개 옮기기’ — 같은 문제가 더 작아진 것입니다. 원반 3개를 어떻게 옮기는지는 묻지 않습니다.", max_width=980) + '''
 
-세 단계를 코드로 옮기면 끝입니다. 함수 이름은 `hanoi(n, source, target, temp)` — 원반 `n` 개를 `source` 에서 `target` 으로, `temp` 를 중간 단계로 써서 옮깁니다. ①에서는 target 이, ③에서는 source 가 중간 단계가 되므로 **인자의 자리만 바뀝니다.**
+게임의 **자동으로 풀기** 버튼이 바로 이 세 단계를 되풀이한 것입니다. 세 단계를 코드로 옮기면 끝입니다. 함수 이름은 `hanoi(n, source, target, temp)` — 원반 `n` 개를 `source` 에서 `target` 으로, `temp` 를 중간 단계로 써서 옮깁니다. ①에서는 target 이, ③에서는 source 가 중간 단계가 되므로 **인자의 자리만 바뀝니다.**
 ''')
 
 code('''
