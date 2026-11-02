@@ -1,16 +1,22 @@
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# 10주차 노트북(강의용 + 과제 정답) 생성 스크립트 — build_w9.py 를 복제해 작성
-# 주제: 고급 알고리듬 — 어려운 문제를 컴퓨팅 사고로 푸는 법 (재귀 · 동적 프로그래밍 · 그래프 모델링)
-# 예제 문제 5개: 하노이 탑 · 계단 오르기(피보나치) · 거스름돈 · 쾨니히스베르크 다리 · 미로 최단 경로
+# 10주차 노트북 생성 스크립트 — 생각하기 판(수업용) · 풀이판(수업 후) · 과제 정답(교수용) 세 파일을 만든다
+# 주제: 고급 알고리듬 — 어려운 문제를 컴퓨팅 사고로 푸는 법 (재귀 · 탐색과 정렬 · 그래프 모델링)
+# 예제 문제 5개: 하노이 탑 · 숫자 맞히기(이진 탐색) · 줄 세우기(정렬) · 쾨니히스베르크 다리 · 미로 최단 경로
+#
+# 셀마다 part 를 붙인다:  T(think) = 생각하기 판에만  /  S(solve) = 풀이판에만  /  BOTH = 두 판 모두
+#   생각하기 판: 문제 띠 · 설명 · 그림 · 게임 · 🤔 생각해 보기 상자 · 칠판 풀이를 받아 적는 빈 셀 · 실습(정답 없음) · 과제
+#   풀이판:     문제 띠 · 🧠 풀이 상자 · 풀이 코드 · 정리 · 실습 정답
 # 사용: python build_w10.py           → 셀 구성만 점검(파일을 쓰지 않음)
 #       python build_w10.py --write   → 강의자료 폴더에 .ipynb 저장 (이미 있으면 중단)
 import base64, hashlib, html, json, os, sys
 from site_common import INTRO_SITE
 
 DEST = r"D:\AI융합과학원\학교강의\컴퓨팅사고\강의자료"
-LECTURE = "컴퓨팅사고_10주차_알고리듬.ipynb"
+THINK_NB = "컴퓨팅사고_10주차_알고리듬_생각하기.ipynb"
+SOLVE_NB = "컴퓨팅사고_10주차_알고리듬_풀이.ipynb"
 HW_SOL = "컴퓨팅사고_10주차_과제정답.ipynb"
+T, S, BOTH = "think", "solve", "both"
 
 # ───────────────────────── HTML 상자 (9주차 노트북과 같은 값) ─────────────────────────
 BOX = "box-sizing:border-box;max-width:100%;overflow-wrap:anywhere;width:auto;"
@@ -45,9 +51,15 @@ def warn(title, body):
 
 
 def think(title, body):
-    """🧠 컴퓨팅 사고 상자 — 문제를 푸는 '생각의 단계'를 정리할 때"""
+    """🧠 컴퓨팅 사고 상자 — 문제를 푸는 '생각의 단계'를 정리할 때 (풀이판)"""
     return (f'<div style="background:#FFF7E6;color:#1F2937;border-left:6px solid #F59E0B;padding:12px 18px;'
             f'border-radius:8px;margin:8px 0;line-height:1.7;{BOX}"><b style="color:#B45309;">🧠 {fmt(title)}</b><br>{fmt(body)}</div>')
+
+
+def ponder(title, body):
+    """🤔 생각해 보기 상자 — 풀이 대신 학생이 스스로 답할 질문만 둔다 (생각하기 판)"""
+    return (f'<div style="background:#FFF7E6;color:#1F2937;border-left:6px solid #F59E0B;padding:12px 18px;'
+            f'border-radius:8px;margin:8px 0;line-height:1.7;{BOX}"><b style="color:#B45309;">🤔 {fmt(title)}</b><br>{fmt(body)}</div>')
 
 
 def task_box(label, title, minutes, body):
@@ -62,10 +74,9 @@ def boom(text):
             f'border-radius:999px;font-weight:bold;">💥 일부러 오류를 내는 셀 — {text}</span>')
 
 
-def answer(code):
-    return ('<details><summary><b>💡 정답 예시 보기 — 먼저 스스로 풀어 본 뒤에 열어 보세요</b></summary>'
-            '<pre style="background:#1F2937;color:#F9FAFB;padding:14px 16px;border-radius:10px;font-family:Consolas,monospace;'
-            f'line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;max-width:100%;">{html.escape(code.strip())}</pre></details>')
+def code_block(code):
+    return ('<pre style="background:#1F2937;color:#F9FAFB;padding:14px 16px;border-radius:10px;font-family:Consolas,monospace;'
+            f'line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;max-width:100%;">{html.escape(code.strip())}</pre>')
 
 
 def period(n, title, goals):
@@ -231,51 +242,68 @@ display(HTML(_game.replace("UID", _uid)))
 
 BREAK = '<div style="text-align:center;color:#6B7280;">☕ 쉬는 시간 — 10분</div>'
 CHECK_HEAD = "# 🔍 자가 점검 — 수정하지 말고 실행만 하세요\n"
+BLANK = '''
+# 칠판의 풀이를 보며 직접 써 보세요
+
+
+
+'''
 
 # ───────────────────────── 셀 모으기 ─────────────────────────
-CELLS = []          # (type, source, metadata)
+CELLS = []          # (type, source, metadata, part)
 PRACTICES = []      # (이름, 정답 코드, 점검 셀 코드) — test_w10.py 가 사용
 
 
-def md(src):
-    CELLS.append(("markdown", src.strip("\n"), {}))
+def md(src, part=T):
+    CELLS.append(("markdown", src.strip("\n"), {}, part))
 
 
-def code(src, raises=False, form=False):
+def code(src, raises=False, form=False, part=T):
     meta = {}
     if raises:
         meta["tags"] = ["raises-exception"]
     if form:
         meta["cellView"] = "form"
         meta["jupyter"] = {"source_hidden": True}
-    CELLS.append(("code", src.strip("\n"), meta))
+    CELLS.append(("code", src.strip("\n"), meta, part))
+
+
+def blank():
+    """생각하기 판 — 칠판 풀이를 받아 적는 빈 코드 셀"""
+    code(BLANK, part=T)
 
 
 def practice(label, title, minutes, body, skeleton, test, solution, raises=False, heading=None, show_answer=True,
              extra=None, extra_raises=False):
-    """✏️ 상자 → 작성용 셀 → (추가 셀) → 🔍 점검 셀 → 💡 정답(접힘)"""
+    """생각하기 판: ✏️ 상자 → 작성용 셀 → (추가 셀) → 🔍 점검 셀.   풀이판: 💡 정답 (show_answer 일 때)"""
     box = task_box(label, title, minutes, body)
-    md((heading + "\n\n" if heading else "") + box)
-    code(skeleton, raises=raises)
+    md((heading + "\n\n" if heading else "") + box, part=T)
+    code(skeleton, raises=raises, part=T)
     if extra:
-        code(extra, raises=extra_raises)
+        code(extra, raises=extra_raises, part=T)
     name = label.split(" ", 1)[1]
     chk = CHECK_HEAD + f'check("{name}", lambda: {test})'
-    code(chk)
+    code(chk, part=T)
     if show_answer:
-        md(answer(solution))
+        md((heading.replace("실습", "실습 정답") + "\n\n" if heading else "") +
+           f'<b style="color:#FF6B5A;">💡 {label} 정답 예시</b> — {title}\n\n' + code_block(solution), part=S)
     PRACTICES.append((name, solution.strip("\n"), chk))
 
 
 # ═════════════════════════ 표지 · 안내 ═════════════════════════
-md(f'''
+def cover(sub):
+    return f'''
 <div style="background:#0EA5A4;color:#FFFFFF;padding:34px 36px;border-radius:18px;{BOX}">
 <span style="background:#FF6B5A;color:#FFFFFF;padding:4px 16px;border-radius:999px;font-weight:bold;">컴퓨팅사고 · 10주차</span>
 <div style="font-size:2.3em;font-weight:bold;margin-top:14px;">고급 알고리듬 — 어려운 문제를 컴퓨팅 사고로 풀다</div>
-<div style="font-size:1.25em;margin-top:6px;">재귀 &nbsp;·&nbsp; 동적 프로그래밍 &nbsp;·&nbsp; 그래프 모델링 &nbsp;·&nbsp; 다섯 개의 고전 문제</div>
-<div style="margin-top:18px;opacity:0.9;">연세대학교 미래캠퍼스 · RC융합대학 교양기초 &nbsp;|&nbsp; 실습 노트북 — 수업 사이트(JupyterLite)에서 엽니다</div>
+<div style="font-size:1.25em;margin-top:6px;">재귀 &nbsp;·&nbsp; 탐색과 정렬 &nbsp;·&nbsp; 그래프 모델링 &nbsp;·&nbsp; 다섯 개의 고전 문제</div>
+<div style="margin-top:18px;opacity:0.9;">연세대학교 미래캠퍼스 · RC융합대학 교양기초 &nbsp;|&nbsp; {sub}</div>
 </div>
-''')
+'''
+
+
+md(cover("수업용 노트북(문제와 실습) — 풀이는 칠판에서 함께 만듭니다"), part=T)
+md(cover("풀이판 — 수업에서 칠판에 쓴 풀이와 코드를 정리한 것입니다"), part=S)
 
 md('''
 # 10주차 학습 안내
@@ -286,7 +314,7 @@ md('''
 | 교시 | 생각의 도구 | 문제 |
 |:---:|:---|:---|
 | **1교시** | **재귀** — 문제를 같은 모양의 더 작은 문제로 쪼갠다 | ① 하노이 탑 |
-| **2교시** | **동적 프로그래밍** — 작은 답을 기억해 큰 답을 만든다 | ② 계단 오르기 &nbsp; ③ 거스름돈 |
+| **2교시** | **탐색과 정렬** — 절반을 버리고, 반으로 나눈다 | ② 숫자 맞히기 &nbsp; ③ 줄 세우기 |
 | **3교시** | **그래프 모델링** — 문제를 점과 선으로 추상화한다 | ④ 쾨니히스베르크의 다리 &nbsp; ⑤ 미로 최단 경로 |
 
 다섯 문제 모두 수백 년 된 고전이거나 모든 컴퓨터과학 교과서에 나오는 문제입니다. 문제 자체보다 **푸는 방법의 모양**이 중요합니다. 오늘 배운 모양은 여러분 전공의 문제에서 다시 나타납니다.
@@ -294,19 +322,23 @@ md('''
 **오늘 수업을 마치면**
 
 1. 재귀 함수의 두 조건(멈추는 경우, 작아지는 문제)을 알고, 하노이 탑처럼 ‘같은 모양의 작은 문제’로 쪼개는 문제를 재귀로 풀 수 있습니다.
-2. 같은 계산을 되풀이하는 재귀가 왜 느려지는지 설명하고, 메모이제이션과 표 채우기(동적 프로그래밍)로 고칠 수 있습니다.
-3. 쉬워 보이는 방법(탐욕법)이 틀리는 경우를 반례로 보이고, 동적 프로그래밍으로 올바른 답을 구할 수 있습니다.
+2. 하나씩 보는 방법과 절반씩 버리는 방법(이진 탐색)의 차이를 횟수로 설명하고, 이진 탐색을 직접 쓸 수 있습니다.
+3. 정렬이 왜 필요한지 알고, 선택 정렬과 병합 정렬이 어떻게 다른지 비교 횟수와 시간으로 보일 수 있습니다.
 4. 현실 문제를 그래프(점과 선)로 추상화하고, 큐를 이용한 너비 우선 탐색으로 최단 경로를 찾을 수 있습니다.
 
-''' + key("이 노트북을 읽는 법", "회색 코드 셀은 <b>직접 실행</b>하는 곳입니다. 실행하기 <b>전에 결과를 먼저 예상</b>해 보세요.<br>🧠 <b>컴퓨팅 사고</b> 상자는 코드가 아니라 <b>생각의 순서</b>를 적은 곳입니다. 오늘은 이 상자가 가장 중요합니다. 코드는 생각이 정리된 뒤에 따라 나옵니다.<br><b style='color:#FF6B5A;'>✏️ 실습</b> 상자가 나오면 직접 코드를 작성합니다. 노트북 맨 끝에 <b style='color:#FF6B5A;'>📝 과제</b>가 있습니다."))
+''' + key("이 노트북을 읽는 법", "이 노트북에는 다섯 문제의 <b>설명과 그림</b>만 있고 <b>풀이와 코드는 없습니다.</b> 풀이를 먼저 보면 생각을 멈추기 때문입니다. 🤔 <b>생각해 보기</b> 상자의 질문을 놓고 먼저 스스로 궁리해 본 뒤, 수업에서 칠판의 풀이를 함께 따라갑니다. 칠판에서 나온 코드는 빈 셀에 직접 쳐 보세요.<br>회색 코드 셀은 <b>직접 실행</b>하는 곳입니다. 실행하기 <b>전에 결과를 먼저 예상</b>해 보세요.<br><b style='color:#FF6B5A;'>✏️ 실습</b> 상자가 나오면 직접 코드를 작성합니다. 노트북 맨 끝에 <b style='color:#FF6B5A;'>📝 과제</b>가 있습니다.<br>풀이와 정리가 들어 있는 <b>풀이판</b>은 수업이 끝난 뒤 따로 올립니다."), part=T)
+
+md('''
+# 풀이판 읽는 법
+
+''' + key("이 노트북은 수업 뒤에 봅니다", "수업용 노트북의 다섯 문제에 대해 칠판에서 함께 만든 <b>🧠 풀이 상자</b>와 <b>완성된 코드</b>, 각 교시의 <b>정리</b>, 실습의 <b>정답 예시</b>를 모았습니다.<br>코드 셀은 <b>위에서부터 차례로</b> 실행하세요. 앞 셀에서 정의한 함수를 뒤에서 씁니다.<br>수업 시간에 빈 셀에 직접 쓴 코드와 여기의 코드를 <b>비교</b>해 보세요. 다른 점이 있다면 어느 쪽이 더 읽기 쉬운지, 둘 다 맞는지 생각해 보세요."), part=S)
 
 # ═════════════════════════ 1교시 ═════════════════════════
 md("# 1교시 · 재귀 — 문제를 같은 모양의 작은 문제로 쪼개다\n\n" + period(1, "재귀와 하노이 탑", [
     "자기 자신을 부르는 함수(재귀)가 어떻게 끝나는지 호출 스택으로 설명한다",
     "재귀의 두 조건 — 멈추는 경우와 작아지는 문제 — 를 안다",
     "하노이 탑을 ‘n−1 개 옮기기’라는 같은 모양의 작은 문제로 분해해 푼다",
-    "재귀와 반복 중 무엇을 쓸지 고르는 기준을 세운다",
-]))
+]), part=BOTH)
 
 md('''
 ## 1-0. 시작 전에
@@ -349,9 +381,16 @@ def check(name, test):
 import importlib as _il, sys as _sys
 
 class _RefreshFinder:
-    @staticmethod
-    def find_spec(name, path=None, target=None):
-        _il.invalidate_caches()
+    _busy = False                     # invalidate_caches 가 안에서 다시 import 를 일으켜도 되돌아 들어오지 않게
+
+    @classmethod
+    def find_spec(cls, name, path=None, target=None):
+        if not cls._busy:
+            cls._busy = True
+            try:
+                _il.invalidate_caches()
+            finally:
+                cls._busy = False
         return None
 
 if not any(type(f).__name__ == "_RefreshFinder" for f in _sys.meta_path):
@@ -367,8 +406,8 @@ md('''
 
 | 요소 | 한 줄 뜻 | 오늘 코드에서 나타나는 모양 |
 |:---|:---|:---|
-| **분해**(decomposition) | 큰 문제를 작은 문제로 나눈다 | 재귀 — “n 개 문제는 n−1 개 문제 + 한 걸음” |
-| **패턴 인식**(pattern recognition) | 작은 경우들에서 규칙을 찾는다 | 점화식 — “f(n) = f(n−1) + f(n−2)” |
+| **분해**(decomposition) | 큰 문제를 작은 문제로 나눈다 | 재귀 — “n 개 문제는 n−1 개 문제 + 한 걸음”, “반으로 나누면 같은 문제 둘” |
+| **패턴 인식**(pattern recognition) | 작은 경우들에서 규칙을 찾는다 | 횟수 세기 — “1,000 이면 10번, 10억이면 30번” |
 | **추상화**(abstraction) | 중요하지 않은 것을 지운다 | 그래프 — 땅과 다리를 점과 선으로 |
 | **알고리듬**(algorithm) | 단계의 순서로 적는다 | 함수 — 입력을 받아 출력을 돌려주는 절차 |
 
@@ -460,8 +499,9 @@ md(key("재귀 정리", "① 재귀는 함수가 <b>같은 모양의 더 작은 
 # ── 문제 1 ──
 md("## 1-4. " + problem(1, "하노이 탑 (Tower of Hanoi)", "막대기 세 개 <b>source · temp · target</b> 이 있습니다. 서로 크기가 다른 원반 n 개가 <b>작은 것이 맨 위, 큰 것이 맨 아래</b>에 오도록 source 막대기에 꽂혀 있습니다. 이 원반들을 <b>target 막대기</b>로 옮기되, 옮긴 뒤에도 <b>같은 순서</b>로 쌓여 있어야 합니다. 조건은 두 가지입니다.<br>1. temp 막대기를 <b>중간 단계</b>로 활용할 수 있습니다.<br>2. 원반은 한 번에 하나씩 옮기며, 어느 막대기에서든 <b>항상 작은 원반이 큰 원반 위에</b> 오도록 옮겨야 합니다.<br>원반이 64개일 때 몇 번 옮겨야 할까요?") + '''
 
-''' + img_fig("컴퓨팅사고_10주차_하노이_문제.png", "시작 상태와 목표 상태. 원반 번호가 작을수록 작은 원반입니다.") + '''
+''' + img_fig("컴퓨팅사고_10주차_하노이_문제.png", "시작 상태와 목표 상태. 원반 번호가 작을수록 작은 원반입니다."), part=BOTH)
 
+md('''
 ### 직접 해 보기
 
 코드를 쓰기 전에 손으로 먼저 풀어 봅니다. 아래 셀을 실행하면 게임판이 나타납니다. 막대기를 누르면 맨 위 원반을 집고, 다른 막대기를 누르면 그곳에 놓습니다. 규칙에 어긋나면 옮겨지지 않습니다.
@@ -474,12 +514,22 @@ code(GAME_CELL, form=True)
 md('''
 1883년 프랑스 수학자 뤼카(Lucas)가 낸 퍼즐입니다. 원반 3개는 손으로 해 볼 만합니다. 7번이면 됩니다. 4개는 15번. 그런데 **방법을 말로 설명**하려면 막힙니다. “먼저 원반 1을 target 으로, 그다음 원반 2를 temp 로, 다시 원반 1을 temp 로 …” 원반이 10개면 이 설명은 1,023 줄이 됩니다.
 
+''' + ponder("생각해 보기 — 어디서부터 생각을 시작할까", "① 원반 3개를 7번에 옮겼다면 그 7번을 <b>말로</b> 설명해 보세요. 원반 10개라면 그 설명은 몇 줄이 될까요? 더 짧게 말할 방법은 없을까요?<br>② 원반이 1개, 2개, 3개, 4개일 때 최소 횟수를 나열해 보세요. 규칙이 보이나요? 64개면 몇 번이고, 1초에 한 번씩 옮기면 몇 년일까요?<br>③ 1-3에서 재귀에는 <b>멈추는 경우</b>와 <b>작아지는 문제</b>가 있어야 한다고 했습니다. 하노이 탑에서 ‘작아진 같은 문제’는 무엇일까요? 가장 큰 원반이 움직이는 <b>그 순간</b>을 떠올려 보세요.") + '''
+
+칠판의 풀이를 따라 아래 빈 셀에 `hanoi(n, source, target, temp)` 를 직접 써 보세요.
+''')
+blank()
+
+# ── 문제 1 풀이 ──
+md('''
+원반 3개는 7번, 4개는 15번. 그런데 **방법을 말로 설명**하려면 막힙니다. “먼저 원반 1을 target 으로, 그다음 원반 2를 temp 로, 다시 원반 1을 temp 로 …” 원반이 10개면 이 설명은 1,023 줄이 됩니다.
+
 ''' + think("분해 — 가장 큰 원반 하나만 생각한다", "원반 n 개를 source 에서 target 으로 옮기는 일 전체를 보지 말고, <b>맨 아래 가장 큰 원반 하나</b>만 봅니다. 이 원반이 target 으로 가려면, 그 위에 있던 n−1 개가 <b>모두 temp 에</b> 비켜 있어야 합니다. 그러면 일은 세 단계가 됩니다.<br>① 위의 n−1 개를 source 에서 temp 로 옮긴다 (target 을 중간 단계로 씀)<br>② 가장 큰 원반 하나를 source 에서 target 으로 옮긴다<br>③ temp 에 있던 n−1 개를 target 으로 옮긴다 (source 를 중간 단계로 씀)<br>①과 ③은 <b>원반 n−1 개를 옮기는 같은 문제</b>입니다. 막대기 이름만 다릅니다. “n−1 개를 어떻게 옮기는가”는 묻지 않습니다. 그것은 <b>같은 함수가 알아서</b> 합니다. 원반이 1개이면 그냥 옮깁니다 — 멈추는 경우.") + '''
 
 ''' + img_fig("컴퓨팅사고_10주차_하노이_분해.png", "원반 4개의 분해. ①과 ③은 ‘원반 3개 옮기기’ — 같은 문제가 더 작아진 것입니다. 원반 3개를 어떻게 옮기는지는 묻지 않습니다.", max_width=980) + '''
 
 게임의 **자동으로 풀기** 버튼이 바로 이 세 단계를 되풀이한 것입니다. 세 단계를 코드로 옮기면 끝입니다. 함수 이름은 `hanoi(n, source, target, temp)` — 원반 `n` 개를 `source` 에서 `target` 으로, `temp` 를 중간 단계로 써서 옮깁니다. ①에서는 target 이, ③에서는 source 가 중간 단계가 되므로 **인자의 자리만 바뀝니다.**
-''')
+''', part=S)
 
 code('''
 def hanoi(n, source, target, temp):
@@ -492,7 +542,7 @@ def hanoi(n, source, target, temp):
     hanoi(n - 1, temp, target, source)           # ③ 비켜 둔 n-1 개를 target 으로 (source 가 중간 단계)
 
 hanoi(3, "source", "target", "temp")
-''')
+''', part=S)
 
 md('''
 출력된 7줄을 위 그림에 그려 가며 따라가 보세요. 규칙을 한 번도 어기지 않습니다. 코드 어디에도 “작은 원반 위에 큰 원반을 올리지 말라”는 검사가 **없는데도** 그렇습니다. 분해가 옳으면 규칙은 저절로 지켜집니다.
@@ -502,7 +552,7 @@ md('''
 ### 몇 번 옮기나 — 패턴 인식
 
 이동 횟수만 세는 함수로 바꿔 봅니다. 출력 대신 **횟수를 돌려줍니다.**
-''')
+''', part=S)
 
 code('''
 def hanoi_count(n):
@@ -512,11 +562,11 @@ def hanoi_count(n):
 
 for n in range(1, 11):
     print(n, hanoi_count(n))
-''')
+''', part=S)
 
 md('''
 1, 3, 7, 15, 31, 63, … 보이나요? **다음 수 = 앞의 수 × 2 + 1**, 즉 $2^n - 1$ 입니다. 작은 경우를 나열해 규칙을 찾는 것이 **패턴 인식**입니다. 규칙을 찾으면 재귀 없이 바로 계산할 수 있습니다.
-''')
+''', part=S)
 
 code('''
 moves = 2 ** 64 - 1
@@ -524,40 +574,11 @@ print(f"원반 64개: {moves:,} 번")
 seconds = moves                           # 1초에 한 번 옮긴다면
 years = seconds / (60 * 60 * 24 * 365)
 print(f"1초에 한 번씩 옮기면 약 {years:,.0f} 년")
-''')
+''', part=S)
 
-md(note("전설", "인도 베나레스의 사원에서 승려들이 황금 원반 64개를 옮기고 있으며, 다 옮기면 세상이 끝난다는 이야기가 퍼즐과 함께 전해집니다. 위 계산대로라면 약 5,850억 년이 걸리니 걱정하지 않아도 됩니다. 우주의 나이(약 138억 년)의 40배가 넘습니다. 이것이 <b>지수적 증가</b>($2^n$)의 크기입니다. 2교시에서 이 크기가 우리 코드 안에서 생기는 것을 보게 됩니다."))
+md(note("전설", "인도 베나레스의 사원에서 승려들이 황금 원반 64개를 옮기고 있으며, 다 옮기면 세상이 끝난다는 이야기가 퍼즐과 함께 전해집니다. 위 계산대로라면 약 5,850억 년이 걸리니 걱정하지 않아도 됩니다. 우주의 나이(약 138억 년)의 40배가 넘습니다. 이것이 <b>지수적 증가</b>($2^n$)의 크기입니다. 2교시에서는 거꾸로, <b>반씩 줄이면</b> 얼마나 빨리 끝나는지 봅니다."), part=S)
 
-md('''
-## 1-5. 재귀와 반복 — 무엇을 쓸까
-
-`factorial` 은 6주차의 `for` 문으로도 쓸 수 있습니다. 둘 다 맞습니다.
-''')
-
-code('''
-def factorial_loop(n):
-    result = 1
-    for i in range(2, n + 1):
-        result *= i
-    return result
-
-print(factorial(10), factorial_loop(10))
-''')
-
-md('''
-그러면 `hanoi` 를 `for` 문으로 쓸 수 있을까요? 쓸 수는 있지만 **훨씬 어렵습니다.** 하노이 탑의 분해는 “n−1 개 문제 **두 번** + 한 걸음”이라 **가지를 칩니다.** 반복문은 한 줄로 쭉 가는 문제에 맞고, 가지를 치는 문제는 재귀가 자연스럽습니다.
-
-| | 반복문 | 재귀 |
-|:---|:---|:---|
-| 어울리는 문제 | 한 줄로 쭉 가는 일 — 합계, 최댓값, 목록 훑기 | 가지를 치는 일 — 하노이 탑, 폴더 안의 폴더, 나무 모양 자료 |
-| 생각의 방향 | “처음부터 끝까지 하나씩” | “가장 큰 한 조각만 생각하고 나머지는 자기 자신에게” |
-| 비용 | 메모리가 거의 들지 않는다 | 호출마다 스택에 쌓인다. 너무 깊으면 `RecursionError` |
-| 함정 | 무한 반복 | 멈추는 경우 누락 · 같은 계산 반복(2교시) |
-
-선택 기준은 하나입니다. **문제의 정의가 재귀적이면 재귀, 아니면 반복.** 하노이 탑은 정의 자체가 “n−1 개 문제”를 품고 있으니 재귀입니다.
-''')
-
-md(key("1-4 ~ 1-5 정리", "① 하노이 탑의 열쇠는 <b>가장 큰 원반 하나만 보는 것</b>입니다. 나머지 n−1 개는 같은 문제이므로 함수 자신에게 맡깁니다.<br>② 분해가 옳으면 규칙 검사 없이도 규칙이 지켜집니다. 코드는 짧고, n 이 커져도 바뀌지 않습니다.<br>③ 작은 경우를 나열해 규칙($2^n - 1$)을 찾는 것이 패턴 인식입니다.<br>④ 가지를 치는 문제는 재귀, 한 줄로 가는 문제는 반복."))
+md(key("1교시 정리", "① 재귀 = 같은 모양의 더 작은 문제를 자기 자신에게 맡기기. <b>멈추는 경우</b>와 <b>작아지는 문제</b>가 필요합니다.<br>② 하노이 탑은 ‘가장 큰 원반 하나’만 보면 세 줄로 풀립니다. 이것이 <b>분해</b>입니다.<br>③ 분해가 옳으면 규칙 검사 없이도 규칙이 지켜집니다. 코드는 짧고, n 이 커져도 바뀌지 않습니다.<br>④ 작은 경우를 나열해 $2^n - 1$ 을 찾는 것이 <b>패턴 인식</b>입니다. 64개면 우주 나이의 40배."), part=S)
 
 # ── 1교시 실습 ──
 practice("✏️ 실습 1-1", "자릿수의 합 — 재귀로", "약 4분",
@@ -610,7 +631,7 @@ print(power(1.5, 3))       # 3.375
 ''', raises=True)
 
 practice("✏️ 실습 1-3", "하노이 탑 — 이동 목록 돌려주기", "약 6분",
-         "1-4의 `hanoi` 는 `print` 를 했습니다. 이번에는 이동을 <b>리스트로 모아 돌려주는</b> `hanoi_moves(n, source, target, temp)` 를 쓰세요. 각 이동은 `(출발 막대기, 도착 막대기)` 튜플입니다.<br>힌트: 멈추는 경우는 `[(source, target)]` 하나짜리 리스트. 작아지는 경우는 ① 의 리스트 + `[(source, target)]` + ③ 의 리스트 — 리스트 덧셈(5주차)으로 이어 붙입니다.<br>`hanoi_moves(2, \"A\", \"C\", \"B\")` → `[(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"C\")]` (막대기 이름은 아무 문자열이나 됩니다)",
+         "수업에서 본 `hanoi` 는 `print` 를 했습니다. 이번에는 이동을 <b>리스트로 모아 돌려주는</b> `hanoi_moves(n, source, target, temp)` 를 쓰세요. 각 이동은 `(출발 막대기, 도착 막대기)` 튜플입니다.<br>힌트: 멈추는 경우는 `[(source, target)]` 하나짜리 리스트. 작아지는 경우는 ① 의 리스트 + `[(source, target)]` + ③ 의 리스트 — 리스트 덧셈(5주차)으로 이어 붙입니다.<br>`hanoi_moves(2, \"A\", \"C\", \"B\")` → `[(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"C\")]` (막대기 이름은 아무 문자열이나 됩니다)",
          '''
 # 여기에 함수를 정의하세요
 
@@ -633,326 +654,401 @@ print(len(moves), "번")                 # 7 번
 print(moves)
 ''', raises=True)
 
-md(key("1교시 정리", "① 재귀 = 같은 모양의 더 작은 문제를 자기 자신에게 맡기기. <b>멈추는 경우</b>와 <b>작아지는 문제</b>가 필요합니다.<br>② 하노이 탑은 ‘가장 큰 원반 하나’만 보면 세 줄로 풀립니다. 이것이 <b>분해</b>입니다.<br>③ 작은 경우를 나열해 $2^n - 1$ 을 찾는 것이 <b>패턴 인식</b>입니다. 64개면 우주 나이의 40배.<br>④ 가지를 치는 문제는 재귀, 한 줄로 가는 문제는 반복.") + "\n\n" + BREAK)
+md(BREAK)
 
 # ═════════════════════════ 2교시 ═════════════════════════
-md("# 2교시 · 동적 프로그래밍 — 작은 답을 기억해 큰 답을 만들다\n\n" + period(2, "계단 오르기와 거스름돈", [
-    "작은 경우를 나열해 점화식을 찾는다",
-    "같은 계산을 되풀이하는 재귀가 왜 느려지는지 호출 횟수로 확인한다",
-    "메모이제이션(기억하기)과 표 채우기(동적 프로그래밍)로 고친다",
-    "탐욕법이 틀리는 반례를 찾고, 동적 프로그래밍으로 올바른 답을 구한다",
-]))
+md("# 2교시 · 탐색과 정렬 — 절반을 버리고, 반으로 나누다\n\n" + period(2, "숫자 맞히기와 줄 세우기", [
+    "하나씩 보는 방법(선형 탐색)과 절반씩 버리는 방법(이진 탐색)의 차이를 횟수로 확인한다",
+    "이진 탐색을 반복과 재귀 두 가지로 쓰고, 무엇을 쓸지 고르는 기준을 세운다",
+    "정렬이 왜 필요한지 알고, 가장 단순한 정렬(선택 정렬)을 손으로 해 본다",
+    "‘반으로 나눠 각각 정렬한 뒤 합치기’(병합 정렬)가 하노이 탑과 같은 재귀임을 안다",
+]), part=BOTH)
 
-md("## 2-1. " + problem(2, "계단 오르기", "계단이 n 칸 있습니다. 한 번에 <b>1칸 또는 2칸</b>씩 오를 수 있습니다. 꼭대기까지 오르는 <b>서로 다른 방법</b>은 몇 가지일까요? 예를 들어 3칸이면 (1,1,1), (1,2), (2,1) 세 가지입니다. 50칸이면?") + '''
-
-손으로 50칸을 세는 것은 불가능합니다. 하노이 탑처럼 **작은 경우부터** 나열합니다.
-
-| 칸 수 n | 방법 | 가짓수 |
-|:---:|:---|:---:|
-| 1 | (1) | 1 |
-| 2 | (1,1), (2) | 2 |
-| 3 | (1,1,1), (1,2), (2,1) | 3 |
-| 4 | (1,1,1,1), (1,1,2), (1,2,1), (2,1,1), (2,2) | 5 |
-| 5 | … | 8 |
-
-1, 2, 3, 5, 8 … **앞의 두 수를 더하면 다음 수**입니다. 왜 그럴까요?
-
-''' + think("분해 — 마지막 한 걸음만 생각한다", "n 칸 꼭대기에 도착하는 <b>마지막 걸음</b>은 둘 중 하나입니다. 1칸을 올라 도착했거나, 2칸을 올라 도착했거나.<br>· 마지막이 1칸이면, 그 전에 <b>n−1 칸</b> 꼭대기에 있었습니다. 거기까지 가는 방법의 수 = f(n−1)<br>· 마지막이 2칸이면, 그 전에 <b>n−2 칸</b> 꼭대기에 있었습니다. 거기까지 가는 방법의 수 = f(n−2)<br>두 경우는 겹치지 않으므로 <b>f(n) = f(n−1) + f(n−2)</b>. 멈추는 경우는 f(1) = 1, f(2) = 2.<br>하노이 탑과 같은 틀입니다. “전체”를 보지 않고 <b>마지막 한 조각</b>만 보고, 나머지는 같은 문제에 맡깁니다. 이렇게 f(n) 을 더 작은 f 로 나타낸 식을 <b>점화식</b>(recurrence relation)이라고 합니다.") + '''
-
-점화식이 나왔으니 1교시처럼 재귀로 옮깁니다.
-''')
-
-code('''
-def climb(n):
-    if n <= 2:                               # 멈추는 경우: f(1) = 1, f(2) = 2
-        return n
-    return climb(n - 1) + climb(n - 2)       # 점화식 그대로
-
-for n in range(1, 11):
-    print(n, climb(n), end="  |  ")
-''')
-
-md(note("피보나치 수열", "1, 1, 2, 3, 5, 8, 13, … 앞의 두 수를 더해 가는 이 수열은 1202년 피보나치(Fibonacci)가 토끼의 번식을 설명하며 소개했습니다. 계단 오르기의 답은 피보나치 수열을 한 칸 민 것입니다. 해바라기 씨의 배열, 나선 조개 껍데기, 주가 분석 도구에도 나타납니다. 오늘은 수열 자체보다 <b>이 점화식을 계산하는 방법</b>이 주제입니다."))
+# ── 문제 2 ──
+md("## 2-1. " + problem(2, "숫자 맞히기 — 몇 번이면 반드시 맞힐까", "친구가 1 부터 1,000 사이의 정수 하나를 마음속에 정했습니다. 여러분이 수를 말하면 친구는 <b>“더 커” · “더 작아” · “맞았어”</b> 셋 중 하나로만 답합니다. 친구가 어떤 수를 정했든 <b>반드시</b> 맞히려면 질문이 최대 몇 번 필요할까요? 범위가 1 부터 10억이면?"), part=BOTH)
 
 md('''
-## 2-2. 재귀가 느려지는 이유 — 같은 계산을 또 하고 또 한다
+1 부터 차례로 “1이야?”, “2야?” 하고 물을 수도 있습니다. 운이 나쁘면 1,000번. 10억이면 10억 번입니다. 그런데 친구의 답에는 “맞았어”만 있는 것이 아닙니다. **“더 커” · “더 작아”** 가 있습니다. 이 정보를 쓰지 않고 있습니다.
 
-`climb(50)` 을 구해 봅시다. 그 전에 작은 값으로 **시간**을 재 봅니다. 7주차에서 쓴 `time` 모듈입니다.
+''' + ponder("생각해 보기 — 한 번의 질문으로 얼마나 많이 버릴 수 있나", "① 첫 질문으로 어떤 수를 말하겠습니까? 왜 그 수인가요? “1” 이라고 말하면 답을 듣고 후보가 몇 개 남나요? “500” 이라고 말하면?<br>② 가장 좋은 질문을 계속하면 후보는 1,000 → ? → ? → … 어떻게 줄어드나요? 1 개가 남을 때까지 몇 번 걸리나요?<br>③ 범위가 10억이면 몇 번일까요? 범위가 2배가 되면 질문은 몇 번 늘어나나요? 규칙을 식으로 적어 보세요.<br>④ 이 방법이 통하려면 ‘더 커 · 더 작아’라는 답이 가능해야 합니다. 즉 후보들에 <b>순서</b>가 있어야 합니다. 순서가 없는 것(예: 사람 이름 목록에서 한 명 찾기)에도 쓸 수 있을까요?") + '''
 
-**예상해 보기** — `climb(25)` 와 `climb(30)` 의 시간은 몇 배 차이 날까요? 입력은 1.2배인데.
+칠판의 풀이를 따라 아래 빈 셀에 써 보세요. 숫자 맞히기를 흉내 내는 함수부터 시작합니다.
 ''')
+blank()
+
+# ── 문제 2 풀이 ──
+md('''
+1 부터 차례로 물으면 운이 나쁘면 1,000번입니다. 친구의 답 **“더 커” · “더 작아”** 를 쓰지 않고 있습니다.
+
+''' + think("분해 — 절반을 버린다", "<b>가운데</b>를 묻습니다. “500 이야?” 답이 “더 커”이면 1 ~ 500 은 전부 버립니다. “더 작아”이면 500 ~ 1,000 을 버립니다. 어느 답이든 후보가 <b>절반</b>으로 줍니다.<br>1,000 → 500 → 250 → 125 → 62 → 31 → 15 → 7 → 3 → 1. <b>10번</b>이면 반드시 맞힙니다.<br>남은 후보 안에서 또 가운데를 묻습니다 — <b>같은 문제가 절반 크기로</b> 된 것입니다. 하노이 탑과 같은 분해입니다. 후보가 하나이면 그것이 답 — 멈추는 경우.<br>질문 k 번이면 $2^k$ 개까지 가립니다. 10억은 $2^{30}$ 보다 작으니 <b>30번</b>이면 됩니다. 하노이 탑의 $2^n$ 을 거꾸로 쓴 것입니다. 이렇게 정렬된 후보에서 절반씩 버리며 찾는 것을 <b>이진 탐색</b>(binary search)이라고 합니다.") + '''
+
+숫자 맞히기를 그대로 코드로 옮깁니다. 후보 범위를 `low` 와 `high` 두 변수로 들고, 가운데 `mid` 를 묻습니다.
+''', part=S)
+
+code('''
+def guess(secret, low=1, high=1000):
+    """친구가 정한 수 secret 을 low ~ high 안에서 가운데부터 물어 맞힌다. 질문 횟수를 돌려준다."""
+    count = 0
+    while low <= high:                      # 후보가 남아 있는 동안
+        mid = (low + high) // 2             # 가운데를 묻는다
+        count += 1
+        if mid == secret:
+            print(f"{count}번째 질문: {mid} → 맞았어!")
+            return count
+        elif mid < secret:
+            print(f"{count}번째 질문: {mid} → 더 커")
+            low = mid + 1                   # 왼쪽 절반을 버린다
+        else:
+            print(f"{count}번째 질문: {mid} → 더 작아")
+            high = mid - 1                  # 오른쪽 절반을 버린다
+
+guess(731)
+''', part=S)
+
+md('''
+`secret` 을 바꿔 가며 실행해 보세요. 어떤 수도 10번 안에 맞힙니다. 가장 운이 나쁜 수는 어느 것일까요? 1 부터 1,000 까지 **전부** 넣어 보면 됩니다. 출력 없이 횟수만 세는 판을 만듭니다.
+''', part=S)
+
+code('''
+def guess_count(secret, low, high):
+    count = 0
+    while low <= high:
+        mid = (low + high) // 2
+        count += 1
+        if mid == secret:
+            return count
+        elif mid < secret:
+            low = mid + 1
+        else:
+            high = mid - 1
+
+for n in [10, 100, 1000]:
+    worst = max(guess_count(s, 1, n) for s in range(1, n + 1))     # 모든 수를 다 넣어 보고 가장 많은 횟수
+    print(f"1 ~ {n:>5,}:   최대 {worst} 번")
+''', part=S)
+
+md('''
+범위가 **10배** 커질 때 질문은 **3 ~ 4번**만 늘어납니다. 범위가 **2배**가 되면 질문은 정확히 **한 번** 늘어납니다 — 질문 k 번으로 $2^k$ 개까지 가릴 수 있으니, 필요한 횟수는 $2^k \\geq n$ 인 가장 작은 $k$, 즉 약 $\\log_2 n$ 입니다. 100만이면 20번, 10억이면 30번($2^{30} \\approx 10.7$억). 하나씩 묻는 방법(10억 번)과 비교하면 3천만 배 차이입니다. 이것이 ‘절반 버리기’의 힘입니다. (실습 2-1에서 이 횟수를 계산하는 함수를 직접 씁니다.)
+
+## 2-2. 이진 탐색 — 정렬된 목록에서 찾기
+
+숫자 맞히기는 사실 **“정렬된 목록에서 값 찾기”** 입니다. 1 ~ 1,000 이라는 목록이 이미 작은 순으로 놓여 있으니 가운데를 볼 수 있었습니다. 어떤 리스트든 **오름차순으로 정렬되어 있으면** 같은 방법이 통합니다. 이번에는 값이 **몇 번째**에 있는지(인덱스)를 돌려줍니다. 없으면 `-1`.
+''', part=S)
+
+code('''
+def binary_search(items, target):
+    """오름차순으로 정렬된 items 에서 target 의 인덱스. 없으면 -1."""
+    low, high = 0, len(items) - 1           # 아직 후보인 구간
+    while low <= high:
+        mid = (low + high) // 2
+        if items[mid] == target:
+            return mid
+        elif items[mid] < target:
+            low = mid + 1                   # 왼쪽 절반을 버린다
+        else:
+            high = mid - 1                  # 오른쪽 절반을 버린다
+    return -1
+
+scores = [12, 25, 31, 47, 58, 63, 77, 81, 90, 95]
+print(binary_search(scores, 63))            # 5
+print(binary_search(scores, 12))            # 0
+print(binary_search(scores, 50))            # -1
+''', part=S)
+
+md('''
+**예상해 보기** — 100만 개짜리 정렬된 리스트에서 맨 끝 값을 찾습니다. 하나씩 보는 **선형 탐색**은 몇 번 비교할까요? 이진 탐색은?
+''', part=S)
+
+code('''
+def linear_search(items, target):
+    """처음부터 하나씩 본다. (인덱스, 비교 횟수)"""
+    for i, value in enumerate(items):
+        if value == target:
+            return i, i + 1
+    return -1, len(items)
+
+def binary_search_count(items, target):
+    """이진 탐색. (인덱스, 비교 횟수)"""
+    low, high, count = 0, len(items) - 1, 0
+    while low <= high:
+        mid = (low + high) // 2
+        count += 1
+        if items[mid] == target:
+            return mid, count
+        elif items[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return -1, count
+
+big = list(range(0, 2_000_000, 2))          # 0, 2, 4, …, 1,999,998 — 100만 개, 정렬됨
+print("선형 탐색:", linear_search(big, 1_999_998))
+print("이진 탐색:", binary_search_count(big, 1_999_998))
+print("없는 값  :", binary_search_count(big, 7))
+''', part=S)
+
+md('''
+100만 번과 20번. 같은 답을 내는데 일의 양이 5만 배 다릅니다. **알고리듬의 선택이 컴퓨터의 속도보다 중요한** 이유입니다.
+
+단, 이진 탐색에는 전제가 하나 있습니다. **정렬되어 있어야 합니다.** 뒤죽박죽인 리스트에 쓰면 어떻게 될까요?
+''', part=S)
+
+code('''
+messy = [47, 12, 90, 31, 77, 25]
+print(binary_search(messy, 12))             # 12 가 있는데도…
+print(messy.index(12))                      # 실제 위치
+''', part=S)
+
+md('''
+`-1` — 있는 값을 “없다”고 답합니다. 가운데 `31` 보다 `12` 가 작으니 오른쪽을 버렸는데, `12` 는 왼쪽이 아니라 두 번째에 있었습니다. 절반을 버리는 논리는 **순서가 있을 때만** 성립합니다. 그래서 탐색 앞에는 **정렬**이 옵니다. 그것이 문제 3입니다.
+
+## 2-3. 재귀와 반복 — 무엇을 쓸까
+
+`binary_search` 는 `while` 로 썼습니다. 🧠 상자의 “남은 후보 안에서 같은 문제”라는 말 그대로 **재귀로** 쓸 수도 있습니다. 작아지는 문제는 `low`, `high` 가 좁아진 구간, 멈추는 경우는 구간이 비는 것입니다.
+''', part=S)
+
+code('''
+def binary_search_rec(items, target, low, high):
+    if low > high:                                            # 멈추는 경우: 후보가 없다
+        return -1
+    mid = (low + high) // 2
+    if items[mid] == target:                                  # 멈추는 경우: 찾았다
+        return mid
+    if items[mid] < target:
+        return binary_search_rec(items, target, mid + 1, high)   # 오른쪽 절반 — 같은 문제, 더 작게
+    return binary_search_rec(items, target, low, mid - 1)        # 왼쪽 절반
+
+print(binary_search_rec(scores, 63, 0, len(scores) - 1))
+print(binary_search_rec(scores, 50, 0, len(scores) - 1))
+''', part=S)
+
+md('''
+둘 다 맞습니다. 그러면 언제 무엇을 쓸까요?
+
+| | 반복문 | 재귀 |
+|:---|:---|:---|
+| 어울리는 문제 | 한 줄로 쭉 가는 일 — 합계, 최댓값, 목록 훑기, 이진 탐색 | 가지를 치는 일 — 하노이 탑, 병합 정렬(2-4), 폴더 안의 폴더 |
+| 생각의 방향 | “처음부터 끝까지 하나씩” | “가장 큰 한 조각만 생각하고 나머지는 자기 자신에게” |
+| 비용 | 메모리가 거의 들지 않는다 | 호출마다 스택에 쌓인다. 너무 깊으면 `RecursionError` |
+| 함정 | 무한 반복 · 범위(`low`, `high`) 갱신 실수 | 멈추는 경우 누락 |
+
+이진 탐색은 다음 구간이 **하나**뿐이라(왼쪽 아니면 오른쪽) 반복문이 자연스럽습니다. 하노이 탑은 n−1 개 문제가 **두 번** 나와 가지를 치니 재귀가 자연스럽습니다. **문제의 정의가 가지를 치면 재귀, 한 줄로 가면 반복.**
+''', part=S)
+
+md(key("2-1 ~ 2-3 정리 — 이진 탐색", "① 하나씩 보면 n 번, <b>절반씩 버리면</b> $\\log_2 n$ 번. 10억 개도 30번.<br>② 가운데를 보고 왼쪽 또는 오른쪽 절반을 버린다. 후보 구간은 `low`, `high` 두 변수로 든다.<br>③ 전제: <b>정렬되어 있어야 한다.</b> 순서가 없으면 절반을 버릴 근거가 없다.<br>④ 반복과 재귀 둘 다 된다. 가지를 치지 않으니 반복이 자연스럽다."), part=S)
+
+# ── 문제 3 ──
+md("## 2-4. " + problem(3, "줄 세우기 — 정렬", "학생 n 명의 키가 뒤죽박죽 목록으로 있습니다. 키가 작은 순으로 줄을 세우려 합니다. 컴퓨터는 한 번에 <b>두 값을 비교</b>하고 <b>자리를 바꾸는</b> 일만 할 수 있습니다. 어떤 순서로 비교하고 바꿔야 할까요? 10명이면 비교를 몇 번 하나요? 100만 명이면?<br>(문제 2의 이진 탐색은 목록이 정렬되어 있어야 했습니다. 정렬은 그 준비 작업입니다.)"), part=BOTH)
+
+md('''
+```
+키:  163  178  155  171  160  182  158  169  175  166      ← 10 명
+```
+
+''' + ponder("생각해 보기 — 손으로 먼저 줄 세우기", "① 위 열 명을 <b>손으로</b> 작은 순으로 정렬해 보세요. 어떤 순서로 비교했나요? 그 방법을 다른 사람에게 <b>말로</b> 설명해 보세요. 설명이 되면 그것이 알고리듬입니다.<br>② 그 방법으로 n 명을 정렬하면 비교를 몇 번 하나요? 10명이면? 100만 명이면? (하노이 탑처럼 작은 경우부터 세어 보세요.)<br>③ 하노이 탑에서는 ‘가장 큰 원반 하나’만 생각했습니다. 줄 세우기에서는 무엇 하나만 생각하면 될까요?<br>④ 목록을 <b>반으로 나누면</b> 두 개의 같은 문제가 됩니다. 반씩 정렬된 두 줄이 있다면 하나의 줄로 <b>합치는</b> 일은 쉬울까요? 두 줄의 <b>맨 앞</b>만 보면 되지 않을까요?") + '''
+
+칠판의 풀이를 따라 아래 빈 셀에 써 보세요. 손으로 한 방법부터 코드로 옮깁니다.
+''')
+blank()
+
+# ── 문제 3 풀이 ──
+md('''
+```
+키:  163  178  155  171  160  182  158  169  175  166      ← 10 명
+```
+
+''' + think("가장 작은 사람 하나만 생각한다 — 선택 정렬", "줄 전체를 보지 말고 <b>맨 앞자리에 설 사람 하나</b>만 생각합니다. 열 명 중 가장 작은 사람(155)을 찾아 맨 앞 사람과 자리를 바꿉니다. 이제 맨 앞은 끝났습니다. 남은 아홉 명에서 가장 작은 사람을 찾아 두 번째 자리와 바꿉니다. … <b>같은 일이 한 명 줄어든 채</b> 되풀이됩니다. 이것을 <b>선택 정렬</b>(selection sort)이라고 합니다.<br>비교 횟수: 가장 작은 사람을 찾으려면 나머지 전부와 비교해야 하니 9 + 8 + … + 1 = <b>45번</b>. n 명이면 $n(n-1)/2$, 약 $n^2/2$ 번. 100만 명이면 <b>5천억 번</b>입니다.") + '''
+''', part=S)
+
+code('''
+def selection_sort(items):
+    """가장 작은 것을 찾아 앞으로 보내기를 되풀이한다. 새 리스트를 돌려준다. (원본은 그대로)"""
+    result = list(items)                              # 복사본을 정렬합니다 (5주차: 리스트는 참조)
+    n = len(result)
+    for i in range(n - 1):                            # i 번째 자리를 채운다
+        smallest = i
+        for j in range(i + 1, n):                     # 남은 것 중 가장 작은 것을 찾는다
+            if result[j] < result[smallest]:
+                smallest = j
+        result[i], result[smallest] = result[smallest], result[i]     # 자리를 바꾼다
+    return result
+
+heights = [163, 178, 155, 171, 160, 182, 158, 169, 175, 166]
+print(selection_sort(heights))
+print(heights)                                        # 원본은 그대로
+''', part=S)
+
+md('''
+비교 횟수를 직접 세어 봅니다. 안쪽 `for` 가 한 번 돌 때마다 비교 한 번입니다.
+''', part=S)
+
+code('''
+def selection_sort_count(items):
+    result, n, count = list(items), len(items), 0
+    for i in range(n - 1):
+        smallest = i
+        for j in range(i + 1, n):
+            count += 1
+            if result[j] < result[smallest]:
+                smallest = j
+        result[i], result[smallest] = result[smallest], result[i]
+    return count
+
+import random
+for n in [10, 100, 1000]:
+    data = [random.randint(140, 200) for _ in range(n)]
+    print(f"{n:>5} 명: 비교 {selection_sort_count(data):>8,} 번   (n(n-1)/2 = {n * (n - 1) // 2:,})")
+''', part=S)
+
+md('''
+10배 많은 사람을 세우는 데 **100배**의 비교가 듭니다. 100만 명이면 5천억 번 — 1초에 1억 번 비교해도 1시간 반입니다. 더 나은 방법이 있을까요? 1교시의 분해를 다시 꺼냅니다.
+
+''' + think("분해 — 반으로 나누어 각각 정렬하고, 합친다 (병합 정렬)", "열 명을 <b>다섯 명씩 두 줄</b>로 나눕니다. 각 줄을 정렬하는 것은 <b>같은 문제가 절반 크기로</b> 된 것이니 같은 함수에 맡깁니다(재귀). 한 명짜리 줄은 이미 정렬되어 있습니다 — 멈추는 경우.<br>남은 일은 <b>정렬된 두 줄을 하나로 합치기</b>뿐입니다. 이것은 쉽습니다. 두 줄의 <b>맨 앞</b>을 비교해 작은 쪽을 꺼내 새 줄에 붙입니다. 한쪽이 비면 다른 쪽을 통째로 붙입니다. n 명이면 비교 n 번 이하.<br>이것을 <b>병합 정렬</b>(merge sort)이라고 합니다. 하노이 탑의 ‘n−1 개 문제 둘 + 한 걸음’과 똑같은 모양입니다. ‘절반 문제 둘 + 합치기’.<br>비교 횟수: 반으로 나누는 층이 $\\log_2 n$ 개이고 각 층에서 합치기에 n 번. 합해서 약 $n \\log_2 n$. 100만 명이면 <b>2천만 번</b> — 5천억 번의 2만 분의 1입니다.") + '''
+
+합치기(`merge`)부터 씁니다. 정렬된 두 리스트를 받아 정렬된 하나를 돌려줍니다.
+''', part=S)
+
+code('''
+def merge(left, right):
+    """정렬된 두 리스트를 하나의 정렬된 리스트로 합친다. 두 줄의 맨 앞만 비교한다."""
+    result = []
+    i, j = 0, 0                                   # 각 줄에서 다음에 볼 자리
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:                   # 맨 앞끼리 비교해 작은 쪽을 꺼낸다
+            result.append(left[i]); i += 1
+        else:
+            result.append(right[j]); j += 1
+    result.extend(left[i:])                       # 한쪽이 비었으면 남은 쪽을 통째로 붙인다
+    result.extend(right[j:])
+    return result
+
+print(merge([155, 160, 163, 171, 178], [158, 166, 169, 175, 182]))
+''', part=S)
+
+md('''
+이제 병합 정렬은 세 줄입니다. 하노이 탑의 세 줄과 비교해 보세요.
+''', part=S)
+
+code('''
+def merge_sort(items):
+    if len(items) <= 1:                           # 멈추는 경우: 0 ~ 1 개는 이미 정렬됨
+        return list(items)
+    mid = len(items) // 2
+    left = merge_sort(items[:mid])                # ① 앞 절반을 정렬한다 — 같은 문제, 절반 크기
+    right = merge_sort(items[mid:])               # ② 뒤 절반을 정렬한다
+    return merge(left, right)                     # ③ 둘을 합친다
+
+print(merge_sort(heights))
+''', part=S)
+
+md('''
+**예상해 보기** — 사람 수가 2배가 될 때 선택 정렬과 병합 정렬의 시간은 각각 몇 배가 될까요? Python 에 내장된 `sorted()` 와도 비교합니다.
+''', part=S)
 
 code('''
 import time
 
-for n in [20, 25, 30]:
-    start = time.time()
-    result = climb(n)
-    elapsed = time.time() - start
-    print(f"climb({n}) = {result:>8}   {elapsed:.3f} 초")
-''')
+for n in [1000, 2000, 4000]:
+    data = [random.randint(1, 10 ** 6) for _ in range(n)]
+    for name, func in [("선택 정렬", selection_sort), ("병합 정렬", merge_sort), ("sorted()", sorted)]:
+        start = time.time()
+        func(data)
+        print(f"{n:>5} 개  {name:<8} {time.time() - start:7.4f} 초")
+    print()
+''', part=S)
 
 md('''
-입력이 5 늘 때마다 시간이 **약 11배** 늘어납니다. `climb(50)` 은 이 비율로 하면 **몇 시간**, `climb(100)` 은 우주의 나이보다 깁니다. 하노이 탑의 $2^n$ 이 우리 코드 안에서 일어나고 있습니다.
+선택 정렬은 2배에 **약 4배**, 병합 정렬은 **약 2배**로 늘어납니다. 100만 개가 되면 차이는 수만 배로 벌어집니다. 둘 다 같은 답을 내고, 둘 다 몇 줄짜리 코드입니다. 차이는 오직 **문제를 어떻게 쪼갰는가**입니다.
 
-왜일까요? `climb(5)` 가 무엇을 부르는지 그려 봅니다.
+<details><summary><b>📎 더 알아보기 — Python 의 <code>sorted()</code> 는 무엇을 쓰나</b></summary>
 
-```
-climb(5)
-├─ climb(4)
-│  ├─ climb(3)
-│  │  ├─ climb(2)
-│  │  └─ climb(1)
-│  └─ climb(2)
-└─ climb(3)              ← climb(3) 을 또 계산합니다. 위에서 이미 했는데.
-   ├─ climb(2)
-   └─ climb(1)
-```
+`sorted()` 와 `list.sort()` 는 **팀소트(Timsort)** 라는 알고리듬을 씁니다. 병합 정렬을 바탕으로, 이미 정렬된 구간을 찾아 활용하도록 개선한 것입니다. 2002년 Python 개발자 팀 피터스(Tim Peters)가 만들었고, 지금은 Java 와 Android 도 씁니다. C 로 구현되어 있어 우리가 Python 으로 쓴 병합 정렬보다 훨씬 빠르지만, 비교 횟수의 **모양**($n \\log n$)은 같습니다.
 
-`climb(3)` 이 두 번, `climb(2)` 가 세 번 계산됩니다. `climb(30)` 에서는 `climb(10)` 이 **수천 번** 계산됩니다. 매번 같은 답이 나오는데도요. 호출 횟수를 직접 세어 봅니다.
-''')
-
-code('''
-calls = 0
-
-def climb_counted(n):
-    global calls                             # 호출 횟수만 세는 용도 — 7주차에서 피하라고 한 global 을 여기서만 씁니다
-    calls += 1
-    if n <= 2:
-        return n
-    return climb_counted(n - 1) + climb_counted(n - 2)
-
-for n in [10, 20, 25]:
-    calls = 0
-    climb_counted(n)
-    print(f"climb({n}): 함수 호출 {calls:,} 번")
-''')
-
-md('''
-`climb(25)` 의 답은 121,393 인데 함수는 **15만 번** 불립니다. 서로 다른 입력은 25개뿐입니다. 나머지는 **전부 중복**입니다.
-
-문제의 원인이 보이니 해결책도 보입니다. **한 번 구한 답을 적어 두고, 다시 물으면 적어 둔 것을 돌려준다.**
-
-## 2-3. 메모이제이션 — 한 번 구한 답은 적어 둔다
-
-5주차의 **딕셔너리**가 ‘메모장’이 됩니다. 함수 첫머리에서 메모장을 보고, 있으면 바로 돌려주고, 없으면 계산한 뒤 **적어 두고** 돌려줍니다. 이것을 **메모이제이션(memoization)** 이라고 합니다. ‘memo(메모)’에서 온 말입니다.
-''')
-
-code('''
-memo = {}                                    # {n: climb(n)} — 구한 답을 적어 두는 메모장
-
-def climb_memo(n):
-    if n in memo:                            # 이미 구한 적이 있으면
-        return memo[n]                       #   적어 둔 답을 바로 돌려준다
-    if n <= 2:
-        return n
-    result = climb_memo(n - 1) + climb_memo(n - 2)
-    memo[n] = result                         # 구한 답을 적어 둔다
-    return result
-
-start = time.time()
-print(climb_memo(50))
-print(climb_memo(90))
-print(f"{time.time() - start:.4f} 초")
-print(len(memo), "개를 적어 두었습니다")
-''')
-
-md('''
-몇 시간이 **0.001초**가 되었습니다. 점화식도, 재귀도 그대로입니다. 달라진 것은 딕셔너리 세 줄뿐입니다. `climb(90)` 을 구하는 데 메모장에 적힌 항목은 88개 — 서로 다른 입력의 수만큼만 계산했습니다.
-
-<details><summary><b>📎 더 알아보기 — <code>functools.lru_cache</code>: 메모이제이션을 한 줄로</b></summary>
-
-Python 표준 라이브러리에 이 일을 대신해 주는 도구가 있습니다. 함수 정의 위에 한 줄을 얹으면(이런 것을 데코레이터라고 합니다. 11주차) 인자별로 결과를 자동으로 기억합니다.
-
-```python
-from functools import lru_cache
-
-@lru_cache(maxsize=None)
-def climb(n):
-    if n <= 2:
-        return n
-    return climb(n - 1) + climb(n - 2)
-
-climb(90)      # 빠릅니다. memo 딕셔너리를 직접 쓰지 않아도 됩니다
-```
-
-원리를 아는 것이 먼저이고, 그다음에 도구를 씁니다.
+실무에서는 정렬을 직접 쓰지 않고 `sorted()` 를 씁니다. 오늘 직접 쓴 이유는 “같은 문제를 다르게 쪼개면 일의 양이 얼마나 달라지는가”를 보기 위해서입니다. 정렬 알고리듬은 이 밖에도 버블 정렬(과제 3), 삽입 정렬, 퀵 정렬 등 여러 가지가 있고, 각각 쪼개는 방법이 다릅니다.
 
 </details>
+''', part=S)
 
-## 2-4. 거꾸로 가기 — 표를 아래에서부터 채운다 (동적 프로그래밍)
-
-메모이제이션은 **큰 문제에서 출발해** 필요한 작은 답을 구하며 내려갑니다(하향식). 반대로 **작은 답부터 차례로** 표에 채워 올라갈 수도 있습니다(상향식). f(1), f(2) 를 알면 f(3) 이 나오고, f(3) 을 알면 f(4) 가 나옵니다. 재귀가 필요 없습니다. 6주차의 `for` 문과 리스트면 됩니다.
-''')
-
-code('''
-def climb_table(n):
-    table = [0] * (n + 1)                    # table[i] = i 칸을 오르는 방법의 수
-    table[1] = 1
-    if n >= 2:
-        table[2] = 2
-    for i in range(3, n + 1):
-        table[i] = table[i - 1] + table[i - 2]    # 점화식 — 이미 채운 두 칸을 읽어 다음 칸을 채운다
-    return table[n]
-
-print(climb_table(50))
-print(climb_table(90))
-''')
-
-md('''
-표를 채우는 이 방식을 **동적 프로그래밍(dynamic programming, DP)** 이라고 합니다. 이름은 1950년대에 벨먼(Bellman)이 붙였는데, ‘동적’이라는 말에 특별한 뜻은 없습니다. 당시 상사가 수학 연구를 싫어해 그럴듯한 이름을 지었다고 벨먼 자신이 회고했습니다. 뜻은 간단합니다. **작은 문제의 답을 표에 적어 두고, 그것으로 큰 문제의 답을 만든다.**
-
-동적 프로그래밍이 통하는 문제는 두 가지 성질이 있습니다.
-
-| 성질 | 뜻 | 계단 오르기에서 |
-|:---|:---|:---|
-| **겹치는 부분 문제** | 같은 작은 문제가 여러 번 나온다 | `climb(3)` 이 `climb(4)` 와 `climb(5)` 양쪽에서 필요 |
-| **최적 부분 구조** | 큰 문제의 답이 작은 문제의 답으로 만들어진다 | f(n) = f(n−1) + f(n−2) |
-
-하노이 탑은 두 번째는 있지만 첫 번째가 없습니다. ①의 `hanoi(n-1, source, temp, …)` 와 ③의 `hanoi(n-1, temp, target, …)` 는 막대기가 달라 **다른 문제**라 적어 둘 것이 없습니다. 그래서 하노이 탑은 $2^n - 1$ 번보다 빨라질 수 없고, 계단 오르기는 n 번이면 됩니다. **같은 재귀라도 겹치는 부분이 있는지**가 운명을 가릅니다.
-''')
-
-md(key("세 가지 풀이 비교", "<table style='border-collapse:collapse;'><tr><th style='text-align:left;padding:2px 10px;'>방법</th><th style='text-align:left;padding:2px 10px;'>생각의 방향</th><th style='text-align:left;padding:2px 10px;'>climb(30) 의 일</th><th style='text-align:left;padding:2px 10px;'>장단점</th></tr><tr><td style='padding:2px 10px;'>단순 재귀</td><td style='padding:2px 10px;'>점화식 그대로</td><td style='padding:2px 10px;'>약 270만 번 호출</td><td style='padding:2px 10px;'>가장 읽기 쉬움 · 지수적으로 느림</td></tr><tr><td style='padding:2px 10px;'>메모이제이션</td><td style='padding:2px 10px;'>위에서 아래로, 적어 두며</td><td style='padding:2px 10px;'>약 60 번 호출</td><td style='padding:2px 10px;'>재귀 코드에 세 줄만 추가 · 깊은 재귀는 스택 한계</td></tr><tr><td style='padding:2px 10px;'>표 채우기(DP)</td><td style='padding:2px 10px;'>아래에서 위로</td><td style='padding:2px 10px;'>반복 28 번</td><td style='padding:2px 10px;'>재귀 없음 · 가장 빠름 · 채우는 순서를 정해야 함</td></tr></table>셋 다 <b>같은 점화식</b>에서 나옵니다. 점화식을 찾는 것이 일의 90% 입니다."))
-
-# ── 문제 3 ──
-md("## 2-5. " + problem(3, "거스름돈 — 가장 적은 동전으로", "동전의 종류가 주어졌을 때, 금액을 거슬러 주는 데 필요한 <b>가장 적은 동전 개수</b>는? 예: 동전이 500 · 100 · 50 · 10원일 때 1,260원 → 500 + 500 + 100 + 100 + 50 + 10 = 6개.") + '''
-
-누구나 아는 방법이 있습니다. **큰 동전부터 되는 만큼** 씁니다. 500원을 2개 쓰고, 남은 260원에 100원을 2개, 50원 1개, 10원 1개. 이렇게 매 순간 가장 좋아 보이는 선택을 하는 것을 **탐욕법(greedy algorithm)** 이라고 합니다.
-''')
-
-code('''
-def change_greedy(coins, amount):
-    """큰 동전부터 되는 만큼 쓴다. coins 는 큰 것부터 정렬되어 있어야 한다."""
-    count = 0
-    for coin in coins:
-        count += amount // coin              # 이 동전을 몇 개 쓸 수 있나
-        amount = amount % coin               # 남은 금액
-    return count
-
-print(change_greedy([500, 100, 50, 10], 1260))
-''')
-
-md('''
-6개, 맞습니다. 한국 동전으로는 탐욕법이 **항상** 최적입니다. 그러면 탐욕법이 거스름돈 문제의 답일까요?
-
-**예상해 보기** — 동전이 1 · 3 · 4원이고 6원을 거슬러 줍니다. 탐욕법은 몇 개를 쓸까요? 가장 적은 개수는 몇 개일까요?
-''')
-
-code('''
-print(change_greedy([4, 3, 1], 6))
-''')
-
-md('''
-탐욕법은 4 + 1 + 1 = **3개**입니다. 그런데 3 + 3 = **2개**면 됩니다. 탐욕법이 **틀렸습니다.** 4원을 집는 순간이 가장 좋아 보였지만, 그 선택이 뒤를 망쳤습니다.
-
-이것이 오늘 두 번째로 중요한 교훈입니다. **쉬워 보이는 방법이 맞는지는 반례를 찾아 확인해야 합니다.** 반례 하나면 방법 전체가 무너집니다. 한국 동전에서 통했다고 모든 동전에서 통하는 것이 아닙니다.
-
-''' + think("분해 — 마지막에 쓴 동전 하나만 생각한다", "계단 오르기의 ‘마지막 한 걸음’과 똑같습니다. 금액 m 을 만드는 <b>마지막 동전</b>은 1원 · 3원 · 4원 중 하나입니다.<br>· 마지막이 1원이면, 그 전에 <b>m−1 원</b>을 만들어 두었어야 합니다. 그 최소 개수 = f(m−1)<br>· 마지막이 3원이면 f(m−3), 4원이면 f(m−4)<br>셋 중 <b>가장 작은 것 + 1</b>이 f(m) 입니다. 멈추는 경우는 f(0) = 0 (0원은 동전 0개).<br><b>f(m) = min(f(m−1), f(m−3), f(m−4)) + 1</b>. 같은 f(m−3) 이 여러 곳에서 필요하니(겹치는 부분 문제) 표로 채웁니다.") + '''
-
-0원부터 차례로 표를 채웁니다. 만들 수 없는 금액(예: 동전이 2원뿐일 때 3원)은 ‘무한대’로 두어 선택되지 않게 합니다.
-''')
-
-code('''
-def min_coins(coins, amount):
-    INF = float("inf")                       # 무한대 — '만들 수 없음' 표시
-    table = [INF] * (amount + 1)             # table[m] = m 원을 만드는 최소 동전 수
-    table[0] = 0                             # 0 원은 동전 0 개
-    for m in range(1, amount + 1):
-        for coin in coins:                   # 마지막 동전이 coin 이라면
-            if coin <= m and table[m - coin] + 1 < table[m]:
-                table[m] = table[m - coin] + 1
-    return table[amount] if table[amount] != INF else -1     # 만들 수 없으면 -1
-
-print(min_coins([1, 3, 4], 6))               # 2  (3 + 3)
-print(min_coins([500, 100, 50, 10], 1260))   # 6
-print(min_coins([2], 3))                     # -1
-''')
-
-md('''
-표 `table` 을 직접 출력해 보면 `[0, 1, 2, 1, 1, 2, 2]` — 0원 0개, 1원 1개, 2원 2개, 3원 1개, 4원 1개, 5원 2개(1+4), 6원 2개(3+3). **모든 금액**의 답이 한꺼번에 나옵니다. 그 금액 하나만 묻는 탐욕법과 다른 점입니다.
-
-`min_coins` 는 `change_greedy` 보다 느립니다. 금액 × 동전 종류만큼 일합니다. 그러나 **항상 맞습니다.** “빠르지만 가끔 틀리는 방법”과 “조금 느리지만 항상 맞는 방법” 중 무엇을 쓸지는 문제에 따라 정합니다. 그리고 그 판단은 반례를 찾아본 사람만 할 수 있습니다.
-''')
-
-md(key("2-5 정리 — 탐욕법과 동적 프로그래밍", "① <b>탐욕법</b>: 매 순간 가장 좋아 보이는 것을 고른다. 빠르고 단순하지만, 맞는지는 <b>증명하거나 반례를 찾아야</b> 안다.<br>② 거스름돈은 동전 종류에 따라 탐욕법이 틀린다. 반례: 동전 1 · 3 · 4 로 6원.<br>③ <b>동적 프로그래밍</b>: 마지막 한 조각만 생각해 점화식을 세우고, 0부터 표를 채운다. 느리지만 항상 맞다.<br>④ 계단 오르기(경우의 수)와 거스름돈(최솟값)은 다른 문제이지만 <b>생각의 틀은 하나</b>입니다. 이 틀을 익히는 것이 오늘의 목표입니다."))
+md(key("2-4 정리 — 정렬", "① <b>선택 정렬</b>: 가장 작은 것 하나만 생각한다. 찾아서 앞으로, 되풀이. 비교 약 $n^2/2$ 번 — 10배 커지면 100배.<br>② <b>병합 정렬</b>: 반으로 나눠 각각 정렬(재귀)하고 <b>합친다</b>. 합치기는 두 줄의 맨 앞만 비교. 비교 약 $n \\log_2 n$ 번 — 10배 커지면 약 13배.<br>③ 하노이 탑 · 이진 탐색 · 병합 정렬은 모두 <b>같은 문제를 더 작게</b> 만드는 분해입니다. 반으로 나누면 $\\log_2 n$ 층이면 끝납니다.<br>④ 정렬은 <b>탐색의 준비 작업</b>입니다. 한 번 정렬해 두면 그 뒤의 모든 탐색이 30번이면 끝납니다."), part=S)
 
 # ── 2교시 실습 ──
-practice("✏️ 실습 2-1", "계단 오르기 — 한 번에 1 · 2 · 3칸", "약 5분",
-         "한 번에 1칸, 2칸, <b>3칸</b>까지 오를 수 있을 때 `n` 칸을 오르는 방법의 수 `climb3(n)` 을 <b>표 채우기</b>로 쓰세요.<br>먼저 점화식을 세웁니다. 마지막 걸음이 1 · 2 · 3칸 중 하나이므로 f(n) = f(n−1) + f(n−2) + f(n−3). 멈추는 경우 f(1) = 1, f(2) = 2, f(3) = 4 (또는 f(0) = 1 로 두고 세 칸을 모두 식으로 구해도 됩니다).<br>`climb3(4)` → `7`, `climb3(10)` → `274`",
+practice("✏️ 실습 2-1", "몇 번이면 맞힐까 — 절반 버리기 횟수", "약 4분",
+         "후보가 `n` 개일 때(1 부터 `n` 까지), 가운데를 묻는 방법으로 <b>반드시</b> 맞히는 데 필요한 최대 질문 수를 돌려주는 `guess_steps(n)` 을 쓰세요.<br>힌트: 후보를 절반씩 줄입니다. `n` 을 `n // 2` 로 바꾸며 <b>0 이 될 때까지</b> 몇 번 걸리는지 세면 됩니다. 1,000 → 500 → 250 → … → 1 → 0.<br>`guess_steps(1)` → `1`, `guess_steps(1000)` → `10`, `guess_steps(10 ** 9)` → `30`",
          '''
 # 여기에 함수를 정의하세요
 
 
-for n in [1, 2, 3, 4, 5, 10, 30]:
-    print(n, climb3(n))
+for n in [1, 2, 10, 100, 1000, 10 ** 6, 10 ** 9]:
+    print(f"{n:>13,} 개 → 최대 {guess_steps(n)} 번")
 ''',
-         "[climb3(n) for n in [1, 2, 3, 4, 5, 10]] == [1, 2, 4, 7, 13, 274] and climb3(30) == 53798080",
+         "[guess_steps(n) for n in [1, 2, 3, 4, 10, 100, 1000]] == [1, 2, 2, 3, 4, 7, 10] and guess_steps(10 ** 6) == 20 and guess_steps(10 ** 9) == 30",
          '''
-def climb3(n):
-    table = [0] * (n + 4)                    # 작은 n 에서도 인덱스가 넘치지 않게 넉넉히
-    table[0] = 1                             # 0 칸: 아무것도 안 하는 방법 1 가지 — 식을 단순하게 해 줍니다
-    for i in range(1, n + 1):
-        table[i] = table[i - 1] + table[i - 2] + table[i - 3]     # 음수 인덱스는 뒤쪽의 0 을 읽으니 괜찮습니다
-    return table[n]
+def guess_steps(n):
+    count = 0
+    while n > 0:                 # 후보가 남아 있는 동안
+        n = n // 2               # 가운데를 물으면 (최악의 경우) 절반이 남는다
+        count += 1
+    return count
 
-for n in [1, 2, 3, 4, 5, 10, 30]:
-    print(n, climb3(n))        # 1 2 4 7 13 274 53798080
+for n in [1, 2, 10, 100, 1000, 10 ** 6, 10 ** 9]:
+    print(f"{n:>13,} 개 → 최대 {guess_steps(n)} 번")       # 1 2 4 7 10 20 30
 ''', raises=True, heading="## 2교시 실습")
 
-practice("✏️ 실습 2-2", "격자 길 찾기 — 경로의 수", "약 6분",
-         "`rows` × `cols` 격자의 왼쪽 위에서 오른쪽 아래까지, <b>오른쪽 또는 아래로만</b> 움직여 가는 경로의 수 `grid_paths(rows, cols)` 를 구하세요.<br>🧠 마지막 한 걸음을 생각합니다. 어떤 칸에 도착하는 마지막 걸음은 <b>위에서 내려왔거나 왼쪽에서 왔거나</b> 둘 중 하나입니다. 그러니 (그 칸까지의 경로 수) = (위 칸까지) + (왼쪽 칸까지). 첫 행과 첫 열은 한 방향으로만 올 수 있으니 1 입니다.<br>2차원 표는 6주차의 리스트의 리스트 `[[0] * cols for _ in range(rows)]` 로 만듭니다.<br>`grid_paths(2, 2)` → `2`, `grid_paths(3, 3)` → `6`, `grid_paths(3, 7)` → `28`",
+practice("✏️ 실습 2-2", "이진 탐색 — 직접 쓰기", "약 6분",
+         "<b>오름차순으로 정렬된</b> 리스트 `items` 에서 `target` 의 인덱스를 돌려주는 `binary_search(items, target)` 을 수업의 코드를 <b>보지 않고</b> 쓰세요. 없으면 `-1`. `items.index()` 와 `in` 은 쓰지 않습니다.<br>🧠 후보 구간을 `low`, `high` 로 들고 가운데 `mid` 를 봅니다. 같으면 찾았고, `target` 이 더 크면 `low = mid + 1`, 더 작으면 `high = mid - 1`. 구간이 비면(`low > high`) 없는 것입니다.<br>`binary_search([1, 3, 5, 7, 9, 11], 7)` → `3`",
          '''
 # 여기에 함수를 정의하세요
 
 
-print(grid_paths(3, 3))
-print(grid_paths(10, 10))
+data = [1, 3, 5, 7, 9, 11]
+print(binary_search(data, 7), binary_search(data, 1), binary_search(data, 11), binary_search(data, 4))
 ''',
-         "grid_paths(1, 1) == 1 and grid_paths(2, 2) == 2 and grid_paths(3, 3) == 6 and grid_paths(3, 7) == 28 and grid_paths(10, 10) == 48620 and grid_paths(1, 5) == 1",
+         'binary_search([1, 3, 5, 7, 9, 11], 7) == 3 and binary_search([1, 3, 5, 7, 9, 11], 1) == 0 and binary_search([1, 3, 5, 7, 9, 11], 11) == 5 and binary_search([1, 3, 5, 7, 9, 11], 4) == -1 and binary_search([], 3) == -1 and binary_search([5], 5) == 0 and binary_search(list(range(0, 2000000, 2)), 1999998) == 999999 and binary_search(list(range(0, 2000000, 2)), 7) == -1',
          '''
-def grid_paths(rows, cols):
-    table = [[0] * cols for _ in range(rows)]      # table[r][c] = (r, c) 칸까지 가는 경로의 수
-    for r in range(rows):
-        for c in range(cols):
-            if r == 0 or c == 0:
-                table[r][c] = 1                    # 첫 행 · 첫 열: 한 길뿐
-            else:
-                table[r][c] = table[r - 1][c] + table[r][c - 1]     # 위에서 + 왼쪽에서
-    return table[rows - 1][cols - 1]
+def binary_search(items, target):
+    low, high = 0, len(items) - 1             # 아직 후보인 구간
+    while low <= high:
+        mid = (low + high) // 2
+        if items[mid] == target:
+            return mid
+        elif items[mid] < target:
+            low = mid + 1                     # 왼쪽 절반을 버린다
+        else:
+            high = mid - 1                    # 오른쪽 절반을 버린다
+    return -1
 
-print(grid_paths(3, 3))        # 6
-print(grid_paths(10, 10))      # 48620
+data = [1, 3, 5, 7, 9, 11]
+print(binary_search(data, 7), binary_search(data, 1), binary_search(data, 11), binary_search(data, 4))     # 3 0 5 -1
 ''', raises=True)
 
-practice("✏️ 실습 2-3", "메모이제이션으로 격자 길 찾기 (도전)", "",
-         "실습 2-2를 <b>재귀 + 메모이제이션</b>으로 다시 쓰세요: `grid_paths_memo(rows, cols)`. 안에 딕셔너리 `memo` 를 두고, 키는 `(rows, cols)` 튜플입니다. 점화식: g(r, c) = g(r−1, c) + g(r, c−1), 멈추는 경우 r == 1 또는 c == 1 이면 1.<br>메모 없이 `grid_paths_memo(16, 16)` 을 부르면 수십억 번 호출되어 끝나지 않습니다. 메모가 있으면 256번이면 됩니다. (시간이 남는 사람만)",
+practice("✏️ 실습 2-3", "두 줄 합치기 — merge (도전)", "",
+         "정렬된 두 리스트 `left`, `right` 를 받아 <b>정렬된 하나의 리스트</b>로 합쳐 돌려주는 `merge(left, right)` 를 쓰세요. `sorted()` 와 `sort()` 는 쓰지 않습니다.<br>🧠 두 줄의 <b>맨 앞</b>만 비교합니다. 작은 쪽을 꺼내 결과에 붙이고 그 줄의 자리를 한 칸 옮깁니다(`i` 또는 `j`). 한쪽이 비면 다른 쪽의 남은 것을 통째로 붙입니다. 원본 두 리스트는 바꾸지 않습니다.<br>`merge([1, 4, 9], [2, 3, 10])` → `[1, 2, 3, 4, 9, 10]`. (시간이 남는 사람만) 이 `merge` 로 `merge_sort` 까지 써 보세요.",
          '''
-memo = {}
-
 # 여기에 함수를 정의하세요
 
 
-print(grid_paths_memo(3, 3))
-print(grid_paths_memo(16, 16))
+print(merge([1, 4, 9], [2, 3, 10]))
+print(merge([], [5, 6]))
 ''',
-         "grid_paths_memo(3, 3) == 6 and grid_paths_memo(3, 7) == 28 and grid_paths_memo(16, 16) == 155117520 and grid_paths_memo(1, 1) == 1",
+         'merge([1, 4, 9], [2, 3, 10]) == [1, 2, 3, 4, 9, 10] and merge([], [5, 6]) == [5, 6] and merge([7], []) == [7] and merge([1, 1, 2], [1, 3]) == [1, 1, 1, 2, 3] and merge(list(range(0, 100, 2)), list(range(1, 100, 2))) == list(range(100))',
          '''
-memo = {}
-
-def grid_paths_memo(rows, cols):
-    if rows == 1 or cols == 1:
-        return 1
-    if (rows, cols) in memo:
-        return memo[(rows, cols)]
-    result = grid_paths_memo(rows - 1, cols) + grid_paths_memo(rows, cols - 1)
-    memo[(rows, cols)] = result
+def merge(left, right):
+    result = []
+    i, j = 0, 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            result.append(left[i]); i += 1
+        else:
+            result.append(right[j]); j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
     return result
 
-print(grid_paths_memo(3, 3))        # 6
-print(grid_paths_memo(16, 16))      # 155117520
+print(merge([1, 4, 9], [2, 3, 10]))        # [1, 2, 3, 4, 9, 10]
+print(merge([], [5, 6]))                   # [5, 6]
 ''', raises=True)
 
-md(key("2교시 정리", "① 작은 경우를 나열해 <b>점화식</b>을 찾습니다. 열쇠는 ‘마지막 한 조각만 생각하기’.<br>② 점화식을 그대로 재귀로 옮기면 맞지만, 겹치는 부분 문제 때문에 지수적으로 느려집니다. 호출 횟수를 세어 보면 보입니다.<br>③ <b>메모이제이션</b> — 딕셔너리에 적어 두기. <b>동적 프로그래밍</b> — 0부터 표 채우기. 둘 다 같은 점화식.<br>④ 탐욕법은 빠르지만 <b>반례</b>가 있을 수 있습니다. 거스름돈 1 · 3 · 4 로 6원. 동적 프로그래밍은 느리지만 항상 맞습니다.") + "\n\n" + BREAK)
+md(BREAK)
 
 # ═════════════════════════ 3교시 ═════════════════════════
 md("# 3교시 · 그래프 모델링 — 문제를 점과 선으로 추상화하다\n\n" + period(3, "쾨니히스베르크의 다리와 미로 최단 경로", [
@@ -960,8 +1056,9 @@ md("# 3교시 · 그래프 모델링 — 문제를 점과 선으로 추상화하
     "그래프를 딕셔너리로 표현하고, 차수를 세어 오일러의 정리로 답한다",
     "미로를 그래프로 보고, 큐를 이용한 너비 우선 탐색으로 최단 경로를 찾는다",
     "오늘 배운 네 가지 생각의 틀을 한 표로 정리한다",
-]))
+]), part=BOTH)
 
+# ── 문제 4 ──
 md("## 3-1. " + problem(4, "쾨니히스베르크의 일곱 다리", "18세기 프로이센의 도시 쾨니히스베르크(지금의 칼리닌그라드)는 강이 도시를 네 구역으로 나누고, 일곱 개의 다리가 구역들을 잇고 있었습니다. 시민들의 오랜 궁금증: <b>일곱 다리를 모두 정확히 한 번씩만 건너는 산책길</b>이 있을까? 출발점과 도착점은 달라도 됩니다.") + '''
 
 ```
@@ -979,11 +1076,19 @@ md("## 3-1. " + problem(4, "쾨니히스베르크의 일곱 다리", "18세기 �
 ```
 
 1736년 오일러(Euler)가 이 문제를 풀었습니다. 다리를 하나하나 건너 보는 대신, 문제를 **다시 그렸습니다.**
+''', part=BOTH)
 
-''' + think("추상화 — 중요하지 않은 것을 지운다", "산책에서 중요한 것은 무엇일까요? 땅의 <b>모양</b>은 상관없습니다. 다리의 <b>길이</b>도, 강의 <b>폭</b>도 상관없습니다. 중요한 것은 두 가지뿐입니다. <b>어떤 땅들이 있고, 어떤 다리가 어느 땅을 잇는가.</b><br>그래서 땅을 <b>점</b>으로, 다리를 <b>선</b>으로 바꿉니다. 지도가 아니라 점 4개와 선 7개짜리 그림이 됩니다. 이것이 <b>그래프</b>(graph)입니다 — 통계 그래프가 아니라 ‘점과 선의 구조’라는 뜻의 수학 용어입니다. 점은 <b>정점</b>(vertex), 선은 <b>변</b>(edge)이라고 부릅니다.<br>오일러는 그다음 질문을 바꾸었습니다. “어떤 순서로 건너야 하나?”가 아니라 “<b>각 땅에 다리가 몇 개씩 붙어 있나?</b>”") + '''
+md(ponder("생각해 보기 — 무엇을 지울 수 있나", "① 다리 7개를 한 번씩만 건너는 순서를 직접 찾아보세요. 몇 번 실패하면 ‘없다’고 <b>확신</b>할 수 있을까요? 모든 순서를 다 시도하면 몇 가지일까요?<br>② 이 문제에서 땅의 <b>모양</b>, 다리의 <b>길이</b>, 강의 <b>폭</b>은 중요한가요? 지워도 되는 것을 모두 지우고 그림을 <b>다시 그려</b> 보세요. 무엇이 남나요?<br>③ 산책 <b>중간에</b> 지나가는 땅에서는 다리를 몇 개 쓰나요? 그 수에 어떤 조건이 붙을까요? 출발점과 도착점은 다를까요?<br>④ 남은 그림을 5주차의 자료형(리스트 · 딕셔너리) 중 무엇으로 적을 수 있을까요?") + '''
+
+칠판의 풀이를 따라 아래 빈 셀에 써 보세요.
+''')
+blank()
+
+# ── 문제 4 풀이 ──
+md(think("추상화 — 중요하지 않은 것을 지운다", "산책에서 중요한 것은 무엇일까요? 땅의 <b>모양</b>은 상관없습니다. 다리의 <b>길이</b>도, 강의 <b>폭</b>도 상관없습니다. 중요한 것은 두 가지뿐입니다. <b>어떤 땅들이 있고, 어떤 다리가 어느 땅을 잇는가.</b><br>그래서 땅을 <b>점</b>으로, 다리를 <b>선</b>으로 바꿉니다. 지도가 아니라 점 4개와 선 7개짜리 그림이 됩니다. 이것이 <b>그래프</b>(graph)입니다 — 통계 그래프가 아니라 ‘점과 선의 구조’라는 뜻의 수학 용어입니다. 점은 <b>정점</b>(vertex), 선은 <b>변</b>(edge)이라고 부릅니다.<br>오일러는 그다음 질문을 바꾸었습니다. “어떤 순서로 건너야 하나?”가 아니라 “<b>각 땅에 다리가 몇 개씩 붙어 있나?</b>”") + '''
 
 Python 에서 그래프는 5주차의 **딕셔너리**로 표현합니다. 키는 정점, 값은 그 정점에서 선으로 이어진 정점들의 리스트입니다. 다리가 두 개면 이름이 두 번 들어갑니다.
-''')
+''', part=S)
 
 code('''
 # 쾨니히스베르크: 땅 4 곳, 다리 7 개. 각 다리는 양쪽 땅의 목록에 한 번씩 들어갑니다
@@ -996,7 +1101,7 @@ bridges = {
 
 for land, neighbors in bridges.items():
     print(f"{land}: 다리 {len(neighbors)} 개 → {neighbors}")
-''')
+''', part=S)
 
 md('''
 한 정점에 붙은 선의 수를 그 정점의 **차수(degree)** 라고 합니다. N 은 3, W 는 5, E 는 3, S 는 3. **모두 홀수**입니다.
@@ -1004,7 +1109,7 @@ md('''
 ''' + think("패턴 인식 — 왜 차수가 답을 결정하나", "산책 중간에 지나가는 땅을 생각합니다. 그 땅에 <b>들어오는</b> 다리 하나, <b>나가는</b> 다리 하나를 씁니다. 다시 들르면 또 둘. 모든 다리를 한 번씩만 쓰므로, 중간에 지나가는 땅의 다리 수는 <b>반드시 짝수</b>여야 합니다.<br>홀수 다리를 가진 땅은 <b>출발점이나 도착점</b>일 수밖에 없습니다. 출발점과 도착점은 많아야 둘. 그러므로 <b>홀수 차수의 정점이 0개 또는 2개</b>일 때만 산책길이 있습니다.<br>쾨니히스베르크는 홀수 차수 정점이 <b>4개</b>. 산책길은 <b>없습니다.</b> 다리를 하나도 건너 보지 않고 답했습니다.") + '''
 
 이 판단을 함수로 씁니다. 그래프 하나를 받아 “모든 선을 한 번씩 지나는 길이 있는가”를 돌려줍니다. 이런 길을 **오일러 경로(Euler path)** 라고 합니다.
-''')
+''', part=S)
 
 code('''
 def odd_degree_vertices(graph):
@@ -1017,11 +1122,11 @@ def has_euler_path(graph):
 
 print(odd_degree_vertices(bridges))
 print(has_euler_path(bridges))
-''')
+''', part=S)
 
 md('''
 **예상해 보기** — 다리를 하나 더 놓으면 어떻게 될까요? 북쪽 땅과 남쪽 땅 사이에 여덟 번째 다리를 놓습니다. (실제로 1875년에 비슷한 다리가 놓였습니다.)
-''')
+''', part=S)
 
 code('''
 import copy
@@ -1031,19 +1136,20 @@ bridges8["S"].append("N")
 
 print(odd_degree_vertices(bridges8))
 print(has_euler_path(bridges8))
-''')
+''', part=S)
 
 md('''
 홀수 차수 정점이 W 와 E 둘만 남습니다. 이제 산책길이 **있습니다.** W 에서 출발해 E 에서 끝나면 됩니다.
+''', part=S)
 
-''' + note("그래프 이론의 시작, 그리고 지금", "오일러의 이 풀이가 <b>그래프 이론</b>의 출발점입니다. 290년 뒤, 같은 생각이 곳곳에 있습니다. 지하철 노선도(역 = 정점, 선로 = 변), SNS 친구 관계(사람 = 정점, 친구 = 변), 인터넷(컴퓨터 = 정점, 회선 = 변), 분자 구조(원자 = 정점, 결합 = 변). 내비게이션이 길을 찾는 것도, 검색 엔진이 중요한 페이지를 고르는 것도 그래프 위의 계산입니다. <b>복잡한 현실에서 점과 선만 남기는 추상화</b>가 이 모든 것의 첫걸음입니다.") + '''
+md(note("그래프 이론의 시작, 그리고 지금", "오일러의 이 풀이가 <b>그래프 이론</b>의 출발점입니다. 290년 뒤, 같은 생각이 곳곳에 있습니다. 지하철 노선도(역 = 정점, 선로 = 변), SNS 친구 관계(사람 = 정점, 친구 = 변), 인터넷(컴퓨터 = 정점, 회선 = 변), 분자 구조(원자 = 정점, 결합 = 변). 내비게이션이 길을 찾는 것도, 검색 엔진이 중요한 페이지를 고르는 것도 그래프 위의 계산입니다. <b>복잡한 현실에서 점과 선만 남기는 추상화</b>가 이 모든 것의 첫걸음입니다.") + '''
 
 ## 3-2. 그래프를 걷기 — 이웃을 따라가며 모두 방문하기
 
 차수만으로 답이 나오는 문제는 드뭅니다. 보통은 그래프를 **직접 걸어야** 합니다. 걷는 방법에는 두 가지가 있는데, 6주차의 **스택과 큐**가 그 둘을 나눕니다.
 
-가장 기본적인 질문부터: “A 에서 출발해 **갈 수 있는 곳**이 어디까지인가?” 이웃을 따라가되, **이미 가 본 곳은 다시 가지 않습니다.**
-''')
+가장 기본적인 질문부터: “A 에서 출발해 **갈 수 있는 곳**이 어디까지인가?” 아래 `friends` 그래프에서 지민이 갈 수 있는 사람은 누구누구일까요?
+''', part=BOTH)
 
 code('''
 friends = {                                  # 작은 친구 관계 그래프
@@ -1055,7 +1161,18 @@ friends = {                                  # 작은 친구 관계 그래프
     "유리": ["준"],                          # 유리 - 준 은 따로 떨어진 그룹
     "준":   ["유리"],
 }
+''', part=BOTH)
 
+md('''
+손으로 따라가 보세요. 그리고 생각해 보세요 — 컴퓨터가 따라가게 하려면 무엇을 **기억**해야 할까요? 기억하지 않으면 어떤 일이 생길까요? 칠판의 풀이를 따라 아래 빈 셀에 써 보세요.
+''')
+blank()
+
+md('''
+이웃을 따라가되, **이미 가 본 곳은 다시 가지 않습니다.**
+''', part=S)
+
+code('''
 def reachable(graph, start):
     """start 에서 선을 따라 갈 수 있는 모든 정점의 집합"""
     visited = {start}                        # 가 본 곳 — 5주차의 집합(set)
@@ -1070,7 +1187,7 @@ def reachable(graph, start):
 
 print(reachable(friends, "지민"))
 print(reachable(friends, "유리"))
-''')
+''', part=S)
 
 md('''
 `visited` 가 없으면 지민 → 민수 → 지민 → 민수 … 를 영원히 돕니다. “가 본 곳 표시”는 그래프를 걸을 때 **빠뜨리면 안 되는 것**입니다. 재귀의 ‘멈추는 경우’와 같은 역할입니다.
@@ -1078,8 +1195,9 @@ md('''
 큐를 썼으므로 **가까운 곳부터** 둘러봅니다. 지민의 친구(민수, 하늘)를 먼저, 그다음 친구의 친구(바다), 그다음 친구의 친구의 친구(솔). 이렇게 **가까운 순서로 넓혀 가는** 탐색을 **너비 우선 탐색(BFS, breadth-first search)** 이라고 합니다. 큐 대신 스택을 쓰면 한 방향으로 **깊이 파고드는** 깊이 우선 탐색(DFS)이 됩니다. 1교시의 재귀가 바로 스택이므로, 재귀로 쓴 탐색은 DFS 입니다.
 
 가까운 순서로 둘러본다는 성질이 다음 문제의 열쇠입니다.
-''')
+''', part=S)
 
+# ── 문제 5 ──
 md("## 3-3. " + problem(5, "미로 최단 경로", "격자 미로가 있습니다. `#` 은 벽, `.` 은 길, `S` 는 출발, `G` 는 목표입니다. 상하좌우 한 칸씩 움직일 때, S 에서 G 까지 <b>가장 짧은 길은 몇 걸음</b>일까요? 갈 수 없으면 −1 입니다.") + '''
 
 ```
@@ -1089,11 +1207,17 @@ S . . # . .
 . . # # . .
 # . . . . G
 ```
+''', part=BOTH)
 
-''' + think("추상화 — 미로도 그래프다", "미로의 <b>길 칸 하나</b>를 정점으로, <b>이웃한 길 칸 사이</b>를 변으로 보면 미로는 그래프입니다. 쾨니히스베르크에서 땅과 다리가 하던 역할을 칸과 이웃 관계가 합니다. 그래프가 되었으니 3-2의 `reachable` 을 쓸 수 있습니다.<br>그런데 ‘갈 수 있나’가 아니라 ‘<b>몇 걸음</b>인가’를 물었습니다. BFS 는 <b>가까운 곳부터</b> 둘러보므로, 어떤 칸에 <b>처음 도착한 순간</b>의 걸음 수가 곧 <b>최단 거리</b>입니다. 더 짧은 길이 있었다면 그 길로 먼저 도착했을 것이기 때문입니다. 그러니 `visited` 집합 대신 <b>거리를 적는 딕셔너리</b>를 두면 됩니다.") + '''
+md(ponder("생각해 보기 — 미로도 그래프일까", "① 손으로 가장 짧은 길을 찾아보세요. 그것이 <b>정말 최단</b>이라고 어떻게 확신하나요? 모든 길을 다 찾아 비교해야 할까요?<br>② 미로의 길 칸 하나를 점으로, 이웃한 길 칸 사이를 선으로 보면 문제 4와 같은 <b>그래프</b>가 됩니다. 그러면 3-2의 ‘갈 수 있는 곳’ 방법을 그대로 쓸 수 있을까요?<br>③ ‘갈 수 있는가’와 ‘<b>몇 걸음</b>인가’는 무엇이 다른가요? 6주차의 <b>스택과 큐</b> 중 어느 쪽을 쓰면 <b>가까운 곳부터</b> 둘러보게 될까요? 가까운 곳부터 둘러보면 왜 최단 거리가 저절로 나올까요?") + '''
+
+미로는 문자열 리스트로 둡니다. 칸은 `(행, 열)` 튜플입니다. 아래 셀의 `find` 는 글자가 있는 칸을 찾고, `neighbors` 는 상하좌우 이웃 중 격자 안이고 벽이 아닌 칸만 돌려줍니다. 이 둘은 미로를 **그래프로 보이게 하는 도구**일 뿐이고, 길을 찾는 생각은 아직 들어 있지 않습니다. 실습 3-3과 과제 5에서도 그대로 씁니다.
+''')
+
+md(think("추상화 — 미로도 그래프다", "미로의 <b>길 칸 하나</b>를 정점으로, <b>이웃한 길 칸 사이</b>를 변으로 보면 미로는 그래프입니다. 쾨니히스베르크에서 땅과 다리가 하던 역할을 칸과 이웃 관계가 합니다. 그래프가 되었으니 3-2의 `reachable` 을 쓸 수 있습니다.<br>그런데 ‘갈 수 있나’가 아니라 ‘<b>몇 걸음</b>인가’를 물었습니다. BFS 는 <b>가까운 곳부터</b> 둘러보므로, 어떤 칸에 <b>처음 도착한 순간</b>의 걸음 수가 곧 <b>최단 거리</b>입니다. 더 짧은 길이 있었다면 그 길로 먼저 도착했을 것이기 때문입니다. 그러니 `visited` 집합 대신 <b>거리를 적는 딕셔너리</b>를 두면 됩니다.") + '''
 
 미로는 문자열 리스트로 둡니다. 칸은 `(행, 열)` 튜플입니다. 이웃은 상하좌우 네 방향인데, 격자 밖이거나 벽이면 뺍니다.
-''')
+''', part=S)
 
 code('''
 maze = [
@@ -1125,11 +1249,16 @@ start, goal = find(maze, "S"), find(maze, "G")
 print(start, goal)
 print(neighbors(maze, start))
 print(neighbors(maze, (2, 2)))
+''', part=BOTH)
+
+md('''
+칠판의 풀이를 따라 아래 빈 셀에 써 보세요. `neighbors(maze, current)` 가 그래프의 `graph[current]` 역할을 합니다.
 ''')
+blank()
 
 md('''
 `neighbors` 가 그래프의 `graph[current]` 역할을 합니다. 미리 딕셔너리를 만들지 않고 **물을 때마다** 이웃을 계산할 뿐, 하는 일은 같습니다. 이제 3-2의 `reachable` 에 거리만 더합니다.
-''')
+''', part=S)
 
 code('''
 def shortest_path_length(maze):
@@ -1147,13 +1276,13 @@ def shortest_path_length(maze):
     return -1                                # 큐가 비었는데 못 만났다 — 갈 수 없다
 
 print(shortest_path_length(maze))
-''')
+''', part=S)
 
 md('''
 9걸음입니다. 미로를 손으로 따라가 확인해 보세요. 길이 여러 개인데 BFS 는 그중 가장 짧은 것을 **자동으로** 고릅니다. “모든 길을 다 찾아 비교한다”는 코드는 어디에도 없습니다. 가까운 곳부터 둘러본다는 **순서**가 그 일을 대신합니다.
 
 거리 표 `distance` 를 미로 위에 그려 보면 물결이 퍼지듯 숫자가 번져 가는 것이 보입니다.
-''')
+''', part=S)
 
 code('''
 def show_distances(maze):
@@ -1178,7 +1307,7 @@ def show_distances(maze):
         print(line)
 
 show_distances(maze)
-''')
+''', part=S)
 
 md('''
 <details><summary><b>📎 더 알아보기 — 몇 걸음이 아니라 <code>어느 길</code>인지 알고 싶다면</b></summary>
@@ -1200,13 +1329,13 @@ path.reverse()          # goal → start 순서로 모았으니 뒤집습니다 
 과제 5 에서 직접 해 봅니다. 내비게이션이 길을 **그려 주는** 원리가 이것입니다. 실제 지도는 길마다 길이가 달라 BFS 대신 다익스트라(Dijkstra) 알고리듬을 쓰지만, ‘가까운 곳부터, 어디서 왔는지 기억하며’라는 뼈대는 같습니다.
 
 </details>
-''')
+''', part=S)
 
-md(key("3교시 정리 — 그래프", "① <b>추상화</b>: 땅과 다리, 칸과 이웃, 사람과 친구 — 모두 점과 선으로 바꾸면 <b>같은 문제</b>가 됩니다.<br>② 그래프는 딕셔너리 `{정점: [이웃들]}` 로 표현합니다. 차수 = 이웃 목록의 길이.<br>③ 오일러: 홀수 차수 정점이 0개 또는 2개일 때만 모든 변을 한 번씩 지나는 길이 있습니다. 걸어 보지 않고 답합니다.<br>④ <b>BFS</b> = 큐 + 가 본 곳 표시. 가까운 순서로 둘러보므로 <b>처음 도착한 순간이 최단 거리</b>입니다."))
+md(key("3교시 정리 — 그래프", "① <b>추상화</b>: 땅과 다리, 칸과 이웃, 사람과 친구 — 모두 점과 선으로 바꾸면 <b>같은 문제</b>가 됩니다.<br>② 그래프는 딕셔너리 `{정점: [이웃들]}` 로 표현합니다. 차수 = 이웃 목록의 길이.<br>③ 오일러: 홀수 차수 정점이 0개 또는 2개일 때만 모든 변을 한 번씩 지나는 길이 있습니다. 걸어 보지 않고 답합니다.<br>④ <b>BFS</b> = 큐 + 가 본 곳 표시. 가까운 순서로 둘러보므로 <b>처음 도착한 순간이 최단 거리</b>입니다."), part=S)
 
 # ── 3교시 실습 ──
 practice("✏️ 실습 3-1", "오일러 경로 판정", "약 5분",
-         "아래 그래프 `envelope` 에 대해 3-1의 `odd_degree_vertices` 와 `has_euler_path` 를 <b>보지 않고 다시 써서</b> 판정하세요. 그런 다음 `envelope` 에 변을 <b>하나 더해</b>(양쪽 목록에 추가) 오일러 경로가 생기게 만들고, 그 그래프를 `envelope_fixed` 에 두세요.<br>`envelope` 은 ‘봉투’ 모양입니다: 정사각형 네 꼭짓점 A B C D 와 대각선 A–C, B–D. 한붓그리기가 될까요? 🧠 어느 두 정점을 이어야 홀수 차수 정점이 둘로 줄어드는지 생각하세요.",
+         "아래 그래프 `envelope` 에 대해 수업에서 본 `odd_degree_vertices` 와 `has_euler_path` 를 <b>보지 않고 다시 써서</b> 판정하세요. 그런 다음 `envelope` 에 변을 <b>하나 더해</b>(양쪽 목록에 추가) 오일러 경로가 생기게 만들고, 그 그래프를 `envelope_fixed` 에 두세요.<br>`envelope` 은 ‘봉투’ 모양입니다: 정사각형 네 꼭짓점 A B C D 와 대각선 A–C, B–D. 한붓그리기가 될까요? 🧠 어느 두 정점을 이어야 홀수 차수 정점이 둘로 줄어드는지 생각하세요.",
          '''
 envelope = {                       # 정사각형 A-B-C-D 와 대각선 A-C, B-D
     "A": ["B", "D", "C"],
@@ -1253,7 +1382,7 @@ print(odd_degree_vertices(envelope_fixed), has_euler_path(envelope_fixed))     #
 ''', raises=True, heading="## 3교시 실습")
 
 practice("✏️ 실습 3-2", "친구 사이의 거리 — 몇 다리 건너면 아는 사람인가", "약 6분",
-         "3-2의 `friends` 그래프에서, `start` 에서 각 사람까지의 <b>거리</b>(몇 명을 거쳐야 하는지)를 딕셔너리로 돌려주는 `bfs_distances(graph, start)` 를 쓰세요. 자기 자신은 0, 친구는 1, 친구의 친구는 2. 갈 수 없는 사람은 딕셔너리에 넣지 않습니다.<br>3-3의 `shortest_path_length` 와 같은 구조입니다. 목표가 없으니 큐가 빌 때까지 돌고 `distance` 전체를 돌려줍니다.<br>`bfs_distances(friends, \"지민\")` → `{\"지민\": 0, \"민수\": 1, \"하늘\": 1, \"바다\": 2, \"솔\": 3}`",
+         "3-2의 `friends` 그래프에서, `start` 에서 각 사람까지의 <b>거리</b>(몇 명을 거쳐야 하는지)를 딕셔너리로 돌려주는 `bfs_distances(graph, start)` 를 쓰세요. 자기 자신은 0, 친구는 1, 친구의 친구는 2. 갈 수 없는 사람은 딕셔너리에 넣지 않습니다.<br>수업에서 본 `shortest_path_length` 와 같은 구조입니다. 목표가 없으니 큐가 빌 때까지 돌고 `distance` 전체를 돌려줍니다.<br>`bfs_distances(friends, \"지민\")` → `{\"지민\": 0, \"민수\": 1, \"하늘\": 1, \"바다\": 2, \"솔\": 3}`",
          '''
 # 여기에 함수를 정의하세요
 
@@ -1279,7 +1408,7 @@ print(bfs_distances(friends, "솔"))
 ''', raises=True)
 
 practice("✏️ 실습 3-3", "미로 — 갈 수 있는 칸의 수 (도전)", "",
-         "3-3의 `find`, `neighbors` 를 그대로 쓰고, S 에서 <b>갈 수 있는 길 칸의 개수</b>(S 자신 포함)를 돌려주는 `count_reachable(maze)` 를 쓰세요. 3-2의 `reachable` 을 미로에 맞게 고치면 됩니다. (시간이 남는 사람만)<br>위의 `maze` 에서는 길 칸 22개가 모두 닿습니다.",
+         "3-3의 `find`, `neighbors` 를 그대로 쓰고, S 에서 <b>갈 수 있는 길 칸의 개수</b>(S 자신 포함)를 돌려주는 `count_reachable(maze)` 를 쓰세요. 수업에서 본 `reachable` 을 미로에 맞게 고치면 됩니다. (시간이 남는 사람만)<br>위의 `maze` 에서는 길 칸 22개가 모두 닿습니다.",
          '''
 # 여기에 함수를 정의하세요
 
@@ -1308,6 +1437,23 @@ print(count_reachable(closed))                      # 2
 ''', raises=True)
 
 # ═════════════════════════ 주차 정리 ═════════════════════════
+NEXT_WEEK = f'''
+<div style="background:#0EA5A4;color:#FFFFFF;padding:16px 24px;border-radius:12px;margin-top:10px;{BOX}">
+<b>다음 주 — 11주차 파일 입출력과 예외 처리</b><br>
+프로그램이 파일을 읽고 쓰는 법, 그리고 오류가 났을 때 멈추지 않고 <b>대처하는</b> 법(`try` · `except`)을 배웁니다. 함수를 값처럼 다루는 일급 객체와 데코레이터도 나옵니다.<br>
+수업 후 <code style="background:#FFFFFF;color:#0B7C7B;padding:1px 6px;border-radius:4px;">File → Download</code> 로 오늘 작성한 노트북을 내려받아 두세요. 아래 과제도 잊지 마세요. 수고하셨습니다!
+</div>
+'''
+
+md('''
+# 10주차 마무리
+
+오늘 다섯 문제를 풀며 쓴 생각의 틀은 넷이었습니다 — **재귀**(분해), **절반 버리기와 반으로 나누기**(탐색과 정렬), **횟수 세기**(패턴 인식), **그래프 모델링**(추상화). 문법은 하나도 새로 배우지 않았습니다.
+
+칠판의 풀이와 개념 정리, 각 문제의 완성된 코드가 들어 있는 **풀이판** 노트북은 수업이 끝난 뒤 수업 사이트에 올립니다. 오늘 빈 셀에 직접 쓴 코드와 풀이판의 코드를 **비교**해 보세요.
+
+''' + key("오늘의 한 문장", "어려운 문제는 <b>통째로</b> 풀리지 않습니다. 가장 큰 조각 하나, 절반 버리기, 반으로 나누기, 점과 선만 남기기 — <b>문제를 다시 쓰는 것</b>이 풀이의 90%이고, 코드는 그 뒤에 따라옵니다.") + "\n\n" + NEXT_WEEK)
+
 md('''
 # 10주차 정리
 
@@ -1315,20 +1461,20 @@ md('''
 
 | 생각의 틀 | 컴퓨팅 사고 요소 | 핵심 질문 | 오늘의 문제 |
 |:---|:---|:---|:---|
-| **재귀** | 분해 | “가장 큰 한 조각만 보면, 나머지는 같은 문제인가?” | 하노이 탑 |
-| **점화식 → DP** | 패턴 인식 | “마지막 한 걸음을 떼면, 그 앞은 더 작은 같은 문제인가?” | 계단 오르기 · 거스름돈 |
-| **탐욕법 검증** | 알고리듬 | “쉬운 방법이 틀리는 반례가 있는가?” | 거스름돈 |
+| **재귀** | 분해 | “가장 큰 한 조각만 보면, 나머지는 같은 문제인가?” | 하노이 탑 · 병합 정렬 |
+| **절반 버리기 · 반으로 나누기** | 분해 | “한 번에 후보의 절반을 버릴 수 있는가? 반으로 나누면 같은 문제 둘인가?” | 숫자 맞히기 · 줄 세우기 |
+| **횟수 세기** | 패턴 인식 | “입력이 2배가 되면 일은 몇 배가 되는가?” | $2^n$ · $\\log_2 n$ · $n^2$ · $n \\log n$ |
 | **그래프 모델링** | 추상화 | “무엇을 지우면 점과 선만 남는가?” | 쾨니히스베르크 · 미로 |
 
 | 개념 | 한 줄 요약 |
 |:---|:---|
 | **재귀** | 멈추는 경우 + 작아지는 문제. 호출 스택에 쌓였다 돌아온다 |
-| **점화식** | f(n) 을 더 작은 f 로 나타낸 식. 작은 경우를 나열해 찾는다 |
-| **겹치는 부분 문제** | 같은 작은 문제가 여러 번 — 단순 재귀가 지수적으로 느려지는 원인 |
-| **메모이제이션** | 딕셔너리에 적어 두기. 재귀는 그대로, 세 줄 추가 |
-| **동적 프로그래밍** | 0부터 표 채우기. 재귀 없이, 항상 맞고 빠르다 |
-| **탐욕법** | 매 순간 최선 — 빠르지만 반례가 있을 수 있다 |
+| **이진 탐색** | 정렬된 목록에서 가운데를 보고 절반을 버린다. $\\log_2 n$ 번 — 10억 개도 30번 |
+| **선형 탐색** | 처음부터 하나씩. n 번. 정렬이 필요 없는 대신 느리다 |
+| **선택 정렬** | 가장 작은 것을 찾아 앞으로. 약 $n^2/2$ 번 비교 |
+| **병합 정렬** | 반으로 나눠 각각 정렬(재귀)하고 합친다. 약 $n \\log_2 n$ 번 |
 | **그래프** | `{정점: [이웃들]}`. 차수 = 이웃 수 |
+| **오일러 경로** | 홀수 차수 정점이 0개 또는 2개일 때만 있다 |
 | **BFS** | 큐 + 가 본 곳 표시. 처음 도착 = 최단 거리 |
 | **지수적 증가** | $2^n$ — 64개 원반은 우주 나이의 40배. 알고리듬 선택이 컴퓨터 성능보다 중요한 이유 |
 
@@ -1337,29 +1483,22 @@ md('''
 | 이름 | 뜻 | 오늘의 예 |
 |:---|:---|:---|
 | `RecursionError` | 재귀가 너무 깊다 | 멈추는 경우가 없다 · 입력이 작아지지 않는다 |
-| 끝나지 않는 셀 | 오류는 아니지만 신호 | 겹치는 부분 문제를 매번 다시 계산 (`climb(50)`) · `visited` 없는 그래프 탐색 (■ 버튼으로 중단) |
-| 답은 나오는데 틀림 | 가장 무서운 신호 | 탐욕법 — 반례로 확인하지 않은 방법 |
+| 끝나지 않는 셀 | 오류는 아니지만 신호 | `low` · `high` 를 갱신하지 않은 이진 탐색 · `visited` 없는 그래프 탐색 (■ 버튼으로 중단) |
+| 답은 나오는데 틀림 | 가장 무서운 신호 | 정렬되지 않은 리스트에 이진 탐색 — 있는 값을 “없다”고 한다 |
 | `KeyError` | 그 키가 없다 | 그래프에 없는 정점 · `distance` 에 없는 칸 |
-| `IndexError` | 격자 밖 | `neighbors` 에서 범위 검사 누락 |
+| `IndexError` | 격자 밖 · 리스트 끝 | `neighbors` 에서 범위 검사 누락 · `merge` 에서 빈 줄의 맨 앞을 보려 함 |
 
-''' + key("오늘의 한 문장", "어려운 문제는 <b>통째로</b> 풀리지 않습니다. 가장 큰 조각 하나, 마지막 한 걸음, 점과 선만 남기기 — <b>문제를 다시 쓰는 것</b>이 풀이의 90%이고, 코드는 그 뒤에 따라옵니다. 이 방법들은 모두 수백 년 전 사람들이 종이와 연필로 찾아낸 것입니다. 컴퓨터는 그 생각을 빠르게 실행할 뿐입니다.") + f'''
+''' + key("오늘의 한 문장", "어려운 문제는 <b>통째로</b> 풀리지 않습니다. 가장 큰 조각 하나, 절반 버리기, 반으로 나누기, 점과 선만 남기기 — <b>문제를 다시 쓰는 것</b>이 풀이의 90%이고, 코드는 그 뒤에 따라옵니다. 이 방법들은 모두 수백 년 전 사람들이 종이와 연필로 찾아낸 것입니다. 컴퓨터는 그 생각을 빠르게 실행할 뿐입니다.") + "\n\n" + NEXT_WEEK, part=S)
 
-<div style="background:#0EA5A4;color:#FFFFFF;padding:16px 24px;border-radius:12px;margin-top:10px;{BOX}">
-<b>다음 주 — 11주차 파일 입출력과 예외 처리</b><br>
-프로그램이 파일을 읽고 쓰는 법, 그리고 오류가 났을 때 멈추지 않고 <b>대처하는</b> 법(`try` · `except`)을 배웁니다. 함수를 값처럼 다루는 일급 객체와 데코레이터(오늘 접은 상자의 `@lru_cache`)도 나옵니다.<br>
-수업 후 <code style="background:#FFFFFF;color:#0B7C7B;padding:1px 6px;border-radius:4px;">File → Download</code> 로 오늘 작성한 노트북을 내려받아 두세요. 아래 과제도 잊지 마세요. 수고하셨습니다!
-</div>
-''')
-
-# ═════════════════════════ 과제 ═════════════════════════
+# ═════════════════════════ 과제 ═════════════════════════ (생각하기 판에만. 정답은 교수용 파일)
 FIRST_HW_CELL = len(CELLS)
 
 md(f'''
 # 10주차 과제
 
-<div style="background:#0EA5A4;color:#FFFFFF;padding:20px 26px;border-radius:14px;{BOX}"><span style="background:#FF6B5A;color:#FFFFFF;padding:3px 14px;border-radius:999px;font-weight:bold;">과제</span>&nbsp;&nbsp;<span style="font-size:1.5em;font-weight:bold;">생각의 틀 적용하기 — 재귀 · DP · 그래프</span><ul style="margin:10px 0 0 0;line-height:1.7;"><li>과제 1 ~ 4는 필수, 과제 5는 도전 문제입니다</li><li>각 문제에 <b>어떤 생각의 틀</b>을 쓰는지 적혀 있습니다. 코드보다 먼저 🧠 상자처럼 ‘마지막 한 조각’을 한국어로 적어 보세요</li><li>4 ~ 9주차의 문법과 오늘의 네 가지 틀만으로 풀 수 있습니다</li><li>제출 기한과 방법은 LearnUs 공지를 따릅니다</li></ul></div>
+<div style="background:#0EA5A4;color:#FFFFFF;padding:20px 26px;border-radius:14px;{BOX}"><span style="background:#FF6B5A;color:#FFFFFF;padding:3px 14px;border-radius:999px;font-weight:bold;">과제</span>&nbsp;&nbsp;<span style="font-size:1.5em;font-weight:bold;">생각의 틀 적용하기 — 재귀 · 탐색과 정렬 · 그래프</span><ul style="margin:10px 0 0 0;line-height:1.7;"><li>과제 1 ~ 4는 필수, 과제 5는 도전 문제입니다</li><li>각 문제에 <b>어떤 생각의 틀</b>을 쓰는지 적혀 있습니다. 코드보다 먼저 🤔 상자의 질문처럼 ‘무엇 하나만 생각하면 되는가’를 한국어로 적어 보세요</li><li>4 ~ 9주차의 문법과 오늘의 네 가지 틀만으로 풀 수 있습니다</li><li>제출 기한과 방법은 LearnUs 공지를 따릅니다</li></ul></div>
 
-''' + note("과제를 풀기 전에", "① 각 문제의 <b>🔍 자가 점검</b> 셀로 답을 스스로 확인할 수 있습니다. 과제에는 정답 예시가 없습니다.<br>② 주어진 함수 이름과 매개변수 순서를 바꾸지 마세요. 점검 셀이 그 이름으로 부릅니다.<br>③ 점검 셀은 예시와 <b>다른 값</b>으로도 함수를 부릅니다. 점검 셀이 <b>끝나지 않으면</b> 메모이제이션이나 ‘가 본 곳 표시’가 빠진 것입니다. ■ 버튼으로 멈추고 고치세요.<br>④ 문법을 찾아보거나 생각을 정리하는 데 AI 도구를 쓸 수 있습니다. 다만 <b>AI가 작성한 코드를 그대로 제출하는 것은 금지</b>입니다(수업계획서). 제출한 코드는 스스로 설명할 수 있어야 합니다."))
+''' + note("과제를 풀기 전에", "① 각 문제의 <b>🔍 자가 점검</b> 셀로 답을 스스로 확인할 수 있습니다. 과제에는 정답 예시가 없습니다.<br>② 주어진 함수 이름과 매개변수 순서를 바꾸지 마세요. 점검 셀이 그 이름으로 부릅니다.<br>③ 점검 셀은 예시와 <b>다른 값</b>으로도 함수를 부릅니다. 점검 셀이 <b>끝나지 않으면</b> `low` · `high` 갱신이나 ‘가 본 곳 표시’가 빠진 것입니다. ■ 버튼으로 멈추고 고치세요.<br>④ 문법을 찾아보거나 생각을 정리하는 데 AI 도구를 쓸 수 있습니다. 다만 <b>AI가 작성한 코드를 그대로 제출하는 것은 금지</b>입니다(수업계획서). 제출한 코드는 스스로 설명할 수 있어야 합니다."))
 
 practice("📝 과제 1", "회문 판별 — 재귀로", "",
          "<b>틀: 재귀.</b> 문자열이 앞뒤로 읽어도 같은 <b>회문</b>(palindrome)이면 `True` 를 돌려주는 `is_palindrome(text)` 를 <b>재귀로</b> 쓰세요. 슬라이싱 `[::-1]` 과 반복문은 쓰지 않습니다.<br>🧠 가장 바깥 글자 둘만 봅니다. 첫 글자와 끝 글자가 같고, <b>그 사이의 문자열이 회문</b>이면 회문입니다. 멈추는 경우: 길이가 0 또는 1 이면 회문. 사이의 문자열은 `text[1:-1]`.<br>`is_palindrome(\"level\")` → `True`, `is_palindrome(\"python\")` → `False`",
@@ -1383,127 +1522,114 @@ for word in ["level", "python", "noon", "a", "", "abca"]:
     print(repr(word), is_palindrome(word))
 ''', raises=True, show_answer=False)
 
-practice("📝 과제 2", "이진 탐색 — 반씩 버리기", "",
-         "<b>틀: 분해(절반으로).</b> <b>오름차순으로 정렬된</b> 리스트 `items` 에서 `target` 의 위치(인덱스)를 찾아 돌려주는 `binary_search(items, target)` 를 쓰세요. 없으면 `-1`.<br>🧠 처음부터 하나씩 보지 않습니다. <b>가운데</b> 원소를 봅니다. 같으면 찾았고, `target` 이 더 작으면 <b>왼쪽 절반</b>만, 더 크면 <b>오른쪽 절반</b>만 남깁니다. 한 번 볼 때마다 후보가 절반으로 주니, 100만 개에서도 20번이면 끝납니다 — 하노이 탑의 $2^n$ 을 거꾸로 쓴 것입니다.<br>재귀(`low`, `high` 를 매개변수로 더한 도우미 함수)와 `while` 반복 중 편한 쪽으로 쓰세요. 단, `items.index()` 와 `in` 은 쓰지 않습니다.<br>`binary_search([1, 3, 5, 7, 9, 11], 7)` → `3`",
+practice("📝 과제 2", "정수 제곱근 — 이진 탐색으로", "",
+         "<b>틀: 절반 버리기.</b> 0 이상의 정수 `n` 에 대해, 제곱이 `n` 을 넘지 않는 <b>가장 큰 정수</b>를 돌려주는 `isqrt(n)` 을 <b>이진 탐색으로</b> 쓰세요. `math.sqrt` 와 `** 0.5` 는 쓰지 않습니다.<br>🧠 답은 0 과 `n` 사이 어딘가에 있습니다 — 숫자 맞히기와 같습니다. 가운데 `mid` 를 골라 `mid * mid` 가 `n` 보다 큰지 작은지로 절반을 버립니다. 단, 정확히 맞는 수가 없을 수 있습니다(`n = 10` 이면 답은 3). 구간이 빌 때까지 돌며 <b>조건을 만족한 가장 큰 `mid`</b> 를 기억해 두세요.<br>`isqrt(16)` → `4`, `isqrt(10)` → `3`, `isqrt(0)` → `0`. 1 부터 하나씩 세면 `isqrt(10 ** 18)` 은 10억 번이지만 이진 탐색은 60번입니다.",
          '''
 # 여기에 함수를 정의하세요
 
 
-data = [1, 3, 5, 7, 9, 11]
-print(binary_search(data, 7), binary_search(data, 1), binary_search(data, 11), binary_search(data, 4))
+for n in [0, 1, 10, 16, 99, 100, 10 ** 18]:
+    print(n, "→", isqrt(n))
 ''',
-         'binary_search([1, 3, 5, 7, 9, 11], 7) == 3 and binary_search([1, 3, 5, 7, 9, 11], 1) == 0 and binary_search([1, 3, 5, 7, 9, 11], 11) == 5 and binary_search([1, 3, 5, 7, 9, 11], 4) == -1 and binary_search([], 3) == -1 and binary_search([5], 5) == 0 and binary_search(list(range(0, 2000000, 2)), 1999998) == 999999 and binary_search(list(range(0, 2000000, 2)), 7) == -1',
+         '[isqrt(n) for n in [0, 1, 2, 3, 4, 10, 16, 99, 100, 101]] == [0, 1, 1, 1, 2, 3, 4, 9, 10, 10] and isqrt(10 ** 18) == 10 ** 9 and isqrt(10 ** 18 - 1) == 10 ** 9 - 1',
          '''
-def binary_search(items, target):
-    low, high = 0, len(items) - 1             # 아직 후보인 구간
+def isqrt(n):
+    low, high = 0, n
+    answer = 0                                # 지금까지 찾은, 제곱이 n 을 넘지 않는 가장 큰 수
     while low <= high:
         mid = (low + high) // 2
-        if items[mid] == target:
-            return mid
-        elif target < items[mid]:
-            high = mid - 1                    # 왼쪽 절반만 남긴다
+        if mid * mid <= n:
+            answer = mid                      # 조건을 만족한다 — 기억해 두고
+            low = mid + 1                     #   더 큰 수도 되는지 오른쪽을 본다
         else:
-            low = mid + 1                     # 오른쪽 절반만 남긴다
-    return -1
+            high = mid - 1                    # 너무 크다 — 왼쪽 절반만
+    return answer
 
-# 재귀로 쓰면:
-# def binary_search(items, target):
-#     def search(low, high):
-#         if low > high:
-#             return -1
-#         mid = (low + high) // 2
-#         if items[mid] == target:
-#             return mid
-#         if target < items[mid]:
-#             return search(low, mid - 1)
-#         return search(mid + 1, high)
-#     return search(0, len(items) - 1)
-
-data = [1, 3, 5, 7, 9, 11]
-print(binary_search(data, 7), binary_search(data, 1), binary_search(data, 11), binary_search(data, 4))
+for n in [0, 1, 10, 16, 99, 100, 10 ** 18]:
+    print(n, "→", isqrt(n))                   # 0 1 3 4 9 10 1000000000
 ''', raises=True, show_answer=False)
 
-practice("📝 과제 3", "장애물이 있는 격자 길 찾기 — DP", "",
-         "<b>틀: 점화식 → 표 채우기.</b> 실습 2-2의 격자에 <b>벽</b>이 생겼습니다. `grid` 는 문자열 리스트이고 `.` 은 길, `#` 은 벽입니다. 왼쪽 위에서 오른쪽 아래까지 오른쪽 · 아래로만 가는 경로의 수 `count_paths(grid)` 를 구하세요.<br>🧠 점화식은 실습 2-2와 같습니다. 단 <b>벽 칸의 경로 수는 0</b> 이고, 첫 행 · 첫 열도 벽이 나오면 그 뒤는 0 입니다. 그래서 첫 행 · 첫 열을 따로 1 로 채우지 말고, 모든 칸에서 ‘위 칸 + 왼쪽 칸’(격자 밖은 0)을 더하되 출발 칸만 1 로 두는 편이 단순합니다. 출발 칸이 벽이면 0.",
-         '''
-grid = [
-    "....",
-    ".#..",
-    "...#",
-    "....",
-]
-
-# 여기에 함수를 정의하세요
-
-
-print(count_paths(grid))
-print(count_paths(["...", "...", "..."]))      # 벽이 없으면 실습 2-2 와 같은 6
-''',
-         'count_paths(["...", "...", "..."]) == 6 and count_paths(["....", ".#..", "...#", "...."]) == 4 and count_paths(["..", "#."]) == 1 and count_paths([".#", "#."]) == 0 and count_paths(["."]) == 1 and count_paths(["#."]) == 0 and count_paths(["." * 10] * 10) == 48620',
-         '''
-def count_paths(grid):
-    rows, cols = len(grid), len(grid[0])
-    table = [[0] * cols for _ in range(rows)]
-    for r in range(rows):
-        for c in range(cols):
-            if grid[r][c] == "#":
-                table[r][c] = 0                              # 벽: 지나갈 수 없다
-            elif r == 0 and c == 0:
-                table[r][c] = 1                              # 출발 칸
-            else:
-                from_up = table[r - 1][c] if r > 0 else 0
-                from_left = table[r][c - 1] if c > 0 else 0
-                table[r][c] = from_up + from_left
-    return table[rows - 1][cols - 1]
-
-grid = [
-    "....",
-    ".#..",
-    "...#",
-    "....",
-]
-print(count_paths(grid))                           # 4
-print(count_paths(["...", "...", "..."]))          # 6
-''', raises=True, show_answer=False)
-
-practice("📝 과제 4", "부분집합의 합 — 메모이제이션", "",
-         "<b>틀: 재귀 + 메모이제이션.</b> 양의 정수 리스트 `nums` 의 원소를 <b>여러 번 써도 되게</b> 더해서 `target` 을 만들 수 있으면 `True` 를 돌려주는 `can_sum(nums, target)` 을 쓰세요.<br>🧠 마지막에 더한 수 하나만 봅니다. `target` 을 만들 수 있다 ⇔ 어떤 `n` 에 대해 `target − n` 을 만들 수 있다. 멈추는 경우: `target == 0` 이면 `True`(아무것도 안 더함), `target < 0` 이면 `False`.<br>메모 없이는 `can_sum([7, 14], 300)` 이 <b>끝나지 않습니다</b>(같은 `target` 을 수억 번 묻습니다). 딕셔너리 `memo` 에 `{target: 결과}` 를 적어 두세요. 함수 안에서 `memo = {}` 를 만들고 안쪽 도우미 함수가 쓰거나, 과제 2-3처럼 밖에 두어도 됩니다. 단, 밖에 둘 때는 `nums` 가 바뀌면 메모를 비워야 합니다 — 안쪽에 두는 편이 안전합니다.<br>`can_sum([5, 3, 4, 7], 7)` → `True`, `can_sum([2, 4], 7)` → `False`",
+practice("📝 과제 3", "버블 정렬 — 이웃끼리 비교해 바꾸기", "",
+         "<b>틀: 알고리듬을 말로 적고 코드로 옮기기.</b> 세 번째 정렬 방법입니다. 리스트를 왼쪽부터 훑으며 <b>이웃한 두 값</b>을 비교해, 왼쪽이 더 크면 자리를 바꿉니다. 끝까지 한 번 훑으면 가장 큰 값이 맨 오른쪽에 가 있습니다(거품이 떠오르듯). 이것을 <b>정렬될 때까지</b> 되풀이합니다. 정렬된 <b>새 리스트</b>를 돌려주는 `bubble_sort(items)` 를 쓰세요. 원본은 바꾸지 않습니다. `sorted()` 와 `sort()` 는 쓰지 않습니다.<br>🧠 한 번 훑을 때마다 맨 오른쪽 하나가 확정되니, 다음 훑기는 그만큼 짧아도 됩니다. 훑는 동안 한 번도 바꾸지 않았다면 이미 정렬된 것이니 멈출 수 있습니다.<br>`bubble_sort([5, 1, 4, 2, 8])` → `[1, 2, 4, 5, 8]`. 비교 횟수는 선택 정렬과 같은 약 $n^2/2$ 입니다 — 왜 그런지 생각해 보세요.",
          '''
 # 여기에 함수를 정의하세요
 
 
-print(can_sum([5, 3, 4, 7], 7))
-print(can_sum([2, 4], 7))
-print(can_sum([7, 14], 300))
+data = [5, 1, 4, 2, 8]
+print(bubble_sort(data))
+print(data)                               # 원본은 그대로여야 합니다
 ''',
-         'can_sum([5, 3, 4, 7], 7) is True and can_sum([2, 4], 7) is False and can_sum([7, 14], 300) is False and can_sum([7, 14], 302) is False and can_sum([7, 14], 294) is True and can_sum([2, 3], 7) is True and can_sum([1], 0) is True and can_sum([3], 10) is False',
+         'bubble_sort([5, 1, 4, 2, 8]) == [1, 2, 4, 5, 8] and bubble_sort([]) == [] and bubble_sort([3]) == [3] and bubble_sort([2, 2, 1, 1]) == [1, 1, 2, 2] and bubble_sort(list(range(50, 0, -1))) == list(range(1, 51)) and (lambda d: (bubble_sort(d), d)[1] == [5, 1, 4, 2, 8])([5, 1, 4, 2, 8])',
          '''
-def can_sum(nums, target):
-    memo = {}                                  # 이 호출 안에서만 쓰는 메모장 — nums 가 바뀌어도 안전합니다
+def bubble_sort(items):
+    result = list(items)                              # 복사본을 정렬합니다
+    n = len(result)
+    for end in range(n - 1, 0, -1):                   # 이번 훑기에서 확정할 마지막 자리
+        swapped = False
+        for i in range(end):                          # 이웃끼리 비교
+            if result[i] > result[i + 1]:
+                result[i], result[i + 1] = result[i + 1], result[i]
+                swapped = True
+        if not swapped:                               # 한 번도 안 바꿨으면 이미 정렬됨
+            break
+    return result
 
-    def helper(remaining):
-        if remaining in memo:
-            return memo[remaining]
-        if remaining == 0:
-            return True
-        if remaining < 0:
-            return False
-        for n in nums:                         # 마지막에 더한 수가 n 이라면
-            if helper(remaining - n):
-                memo[remaining] = True
-                return True
-        memo[remaining] = False
-        return False
+data = [5, 1, 4, 2, 8]
+print(bubble_sort(data))                  # [1, 2, 4, 5, 8]
+print(data)                               # [5, 1, 4, 2, 8]
+''', raises=True, show_answer=False)
 
-    return helper(target)
+practice("📝 과제 4", "같은 점수가 몇 명 — 이진 탐색 두 번", "",
+         "<b>틀: 절반 버리기 (응용).</b> <b>오름차순으로 정렬된</b> 점수 리스트 `scores` 에서 `x` 점이 <b>몇 개</b> 있는지 돌려주는 `count_score(scores, x)` 를 쓰세요. 100만 명짜리 리스트에서도 빨라야 합니다. `scores.count()` 와 `for` 로 전부 훑는 방법은 쓰지 않습니다.<br>🧠 `x` 가 <b>처음</b> 나오는 위치와 <b>마지막</b> 나오는 위치를 각각 이진 탐색으로 찾으면, 개수 = 마지막 − 처음 + 1. 처음 위치를 찾을 때는 `scores[mid] == x` 여도 멈추지 말고 <b>왼쪽을 더</b> 봅니다(과제 2의 ‘기억해 두고 계속’과 같은 요령). `x` 가 없으면 0.<br>`count_score([70, 80, 80, 80, 90], 80)` → `3`",
+         '''
+# 여기에 함수를 정의하세요
 
-print(can_sum([5, 3, 4, 7], 7))      # True
-print(can_sum([2, 4], 7))            # False
-print(can_sum([7, 14], 300))         # False — 메모 덕분에 바로 끝납니다
+
+scores = [70, 80, 80, 80, 90]
+print(count_score(scores, 80), count_score(scores, 70), count_score(scores, 75))
+''',
+         'count_score([70, 80, 80, 80, 90], 80) == 3 and count_score([70, 80, 80, 80, 90], 70) == 1 and count_score([70, 80, 80, 80, 90], 90) == 1 and count_score([70, 80, 80, 80, 90], 75) == 0 and count_score([], 5) == 0 and count_score([5] * 1000, 5) == 1000 and count_score([i // 10 for i in range(1000000)], 777) == 10 and count_score([i // 10 for i in range(1000000)], 100000) == 0',
+         '''
+def first_index(scores, x):
+    """x 가 처음 나오는 인덱스. 없으면 -1"""
+    low, high, found = 0, len(scores) - 1, -1
+    while low <= high:
+        mid = (low + high) // 2
+        if scores[mid] == x:
+            found = mid                       # 기억해 두고
+            high = mid - 1                    #   더 왼쪽에도 있는지 본다
+        elif scores[mid] < x:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return found
+
+def last_index(scores, x):
+    """x 가 마지막으로 나오는 인덱스. 없으면 -1"""
+    low, high, found = 0, len(scores) - 1, -1
+    while low <= high:
+        mid = (low + high) // 2
+        if scores[mid] == x:
+            found = mid
+            low = mid + 1                     #   더 오른쪽에도 있는지 본다
+        elif scores[mid] < x:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return found
+
+def count_score(scores, x):
+    first = first_index(scores, x)
+    if first == -1:
+        return 0
+    return last_index(scores, x) - first + 1
+
+scores = [70, 80, 80, 80, 90]
+print(count_score(scores, 80), count_score(scores, 70), count_score(scores, 75))     # 3 1 0
 ''', raises=True, show_answer=False)
 
 practice("📝 과제 5", "미로의 최단 경로 그리기 (도전)", "",
-         "<b>틀: BFS + 어디서 왔는지 기억.</b> 3-3의 `find`, `neighbors` 를 그대로 쓰고, S 에서 G 까지의 <b>최단 경로를 칸의 리스트</b>로 돌려주는 `shortest_path(maze)` 를 쓰세요. 리스트의 첫 원소는 S 의 칸, 마지막은 G 의 칸입니다. 갈 수 없으면 빈 리스트 `[]`.<br>🧠 3-3의 접은 상자대로, BFS 를 돌며 `came_from[다음 칸] = 지금 칸` 을 적어 둡니다. G 에 도착하면 `came_from` 을 따라 S 까지 <b>거꾸로</b> 올라가며 모은 뒤 뒤집습니다.<br>점검 셀은 경로가 ① S 에서 시작해 G 에서 끝나고, ② 매 걸음이 상하좌우 한 칸이며 벽이 아니고, ③ 길이가 최단 거리 + 1 인지 확인합니다. 최단 경로가 여럿이면 어느 것이든 통과합니다.",
+         "<b>틀: BFS + 어디서 왔는지 기억.</b> 3-3의 `find`, `neighbors` 를 그대로 쓰고, S 에서 G 까지의 <b>최단 경로를 칸의 리스트</b>로 돌려주는 `shortest_path(maze)` 를 쓰세요. 리스트의 첫 원소는 S 의 칸, 마지막은 G 의 칸입니다. 갈 수 없으면 빈 리스트 `[]`.<br>🧠 BFS 를 돌며 `came_from[다음 칸] = 지금 칸` 을 적어 둡니다. G 에 도착하면 `came_from` 을 따라 S 까지 <b>거꾸로</b> 올라가며 모은 뒤 뒤집습니다. 1교시의 호출 스택이 돌아갈 곳을 기억하던 것과 같은 생각입니다.<br>점검 셀은 경로가 ① S 에서 시작해 G 에서 끝나고, ② 매 걸음이 상하좌우 한 칸이며 벽이 아니고, ③ 길이가 최단 거리 + 1 인지 확인합니다. 최단 경로가 여럿이면 어느 것이든 통과합니다.",
          '''
 # 여기에 함수를 정의하세요
 
@@ -1539,14 +1665,23 @@ print(len(path) - 1, "걸음")          # 9 걸음
 print(path)
 ''', raises=True, show_answer=False)
 
-md(key("제출 전 확인", "① 맨 위 `▶ 먼저 실행하세요` 셀부터 과제 셀까지 <b>위에서부터 차례로</b> 실행해, 과제 1 ~ 4의 자가 점검이 모두 ✅ 인지 확인합니다. (과제 5는 3교시의 `maze` · `find` · `neighbors` 셀이 먼저 실행되어 있어야 합니다.)<br>② 메뉴에서 `File → Download` 로 노트북 파일(`.ipynb`)을 내려받습니다.<br>③ 내려받은 파일을 LearnUs 공지에 따라 제출합니다."))
+md(key("제출 전 확인", "① 맨 위 `▶ 먼저 실행하세요` 셀부터 과제 셀까지 <b>위에서부터 차례로</b> 실행해, 과제 1 ~ 4의 자가 점검이 모두 ✅ 인지 확인합니다. (과제 5는 3교시 문제 5의 `maze` · `find` · `neighbors` 셀이 먼저 실행되어 있어야 합니다.)<br>② 메뉴에서 `File → Download` 로 노트북 파일(`.ipynb`)을 내려받습니다.<br>③ 내려받은 파일을 LearnUs 공지에 따라 제출합니다."))
 
 
 # ───────────────────────── 노트북 조립 ─────────────────────────
-def to_nb(cells):
+def pick(part):
+    """해당 판에 들어갈 셀만 (type, source, meta) 로 돌려준다"""
+    return [(t, s, m) for t, s, m, p in CELLS if p == part or p == BOTH]
+
+
+THINK_CELLS = pick(T)
+SOLVE_CELLS = pick(S)
+
+
+def to_nb(cells, prefix):
     out, seen = [], set()
     for i, (ctype, src, meta) in enumerate(cells):
-        cid = hashlib.md5(f"w10-{i}-{src}".encode("utf-8")).hexdigest()[:8]
+        cid = hashlib.md5(f"{prefix}-{i}-{src}".encode("utf-8")).hexdigest()[:8]
         assert cid not in seen
         seen.add(cid)
         lines = src.split("\n")
@@ -1572,7 +1707,7 @@ def save(nb, path):
 
 
 def hw_solution_cells():
-    cells = [("markdown", "# 컴퓨팅사고 10주차 과제 — 정답 예시 (교수용)\n\n**학생에게 배포하지 않는 파일입니다.** 강의 노트북 `" + LECTURE + "` 맨 끝 ‘10주차 과제’의 정답 예시입니다. 과제 5는 3교시의 `maze` · `find` · `neighbors` 가 먼저 정의되어 있어야 합니다(아래 첫 코드 셀에 복사해 둠).", {})]
+    cells = [("markdown", "# 컴퓨팅사고 10주차 과제 — 정답 예시 (교수용)\n\n**학생에게 배포하지 않는 파일입니다.** 수업용 노트북 `" + THINK_NB + "` 맨 끝 ‘10주차 과제’의 정답 예시입니다. 과제 5는 3교시의 `maze` · `find` · `neighbors` 가 먼저 정의되어 있어야 합니다(아래 첫 코드 셀에 복사해 둠).", {})]
     cells.append(("code", '''
 maze = [
     "S..#..",
@@ -1607,9 +1742,15 @@ def neighbors(maze, cell):
 
 
 if __name__ == "__main__":
-    n_code = sum(1 for c in CELLS if c[0] == "code")
-    print(f"cells={len(CELLS)} code={n_code} practices={len(PRACTICES)} first_hw_cell={FIRST_HW_CELL}")
+    for label, cells in [("생각하기", THINK_CELLS), ("풀이", SOLVE_CELLS)]:
+        n_code = sum(1 for c in cells if c[0] == "code")
+        print(f"{label}: cells={len(cells)} code={n_code}")
+    # 생각하기 판에 🧠 풀이 상자 · 정답이 없고, 풀이판에 🤔 · 빈 셀 · 실습 상자가 없는지 확인
+    assert not [s for t, s, m in THINK_CELLS if '">🧠' in s or "💡" in s], "생각하기 판에 풀이가 섞임"
+    assert not [s for t, s, m in SOLVE_CELLS if "🤔" in s or s.startswith("# 칠판의 풀이") or ("✏️ 실습 " in s and "정답" not in s)], "풀이판에 수업용 셀이 섞임"
+    print(f"practices={len(PRACTICES)} first_hw_cell={FIRST_HW_CELL}")
     if "--write" in sys.argv:
-        save(to_nb(CELLS), os.path.join(DEST, LECTURE))
-        save(to_nb(hw_solution_cells()), os.path.join(DEST, HW_SOL))
-        print("saved:", LECTURE, "/", HW_SOL)
+        save(to_nb(THINK_CELLS, "w10t"), os.path.join(DEST, THINK_NB))
+        save(to_nb(SOLVE_CELLS, "w10s"), os.path.join(DEST, SOLVE_NB))
+        save(to_nb(hw_solution_cells(), "w10h"), os.path.join(DEST, HW_SOL))
+        print("saved:", THINK_NB, "/", SOLVE_NB, "/", HW_SOL)
