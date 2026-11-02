@@ -11,6 +11,8 @@
 | `test_w7.py` | 7주차 검증. `%%writefile` 셀은 임시 폴더에 파일을 쓰고 거기서 import 한다. `-v` 로 정답 실행 출력도 표시 |
 | `build_w9.py` | 9주차(클래스 · 상속 · 패키지 · 외부 라이브러리) 노트북 + 과제 정답 생성. `build_w7.py` 를 복제해 작성 |
 | `test_w9.py` | 9주차 검증. `%%writefile geometry/...` 처럼 하위 폴더 파일도 임시 폴더에 쓴다. `-v` 로 정답 실행 출력도 표시 |
+| `build_w10.py` | 10주차(재귀 · DP · 그래프, 고전 문제 5개) 노트북 + 과제 정답 생성. `build_w9.py` 를 복제해 작성 |
+| `test_w10.py` | 10주차 검증. `test_w9.py` 와 같고 `%%writefile` · `input()` 셀이 없다 |
 | `site_convert_w45.py` | 4·5주차 Colab용 원본 → 사이트용 사본으로 변환해 `content/` 에 저장 |
 | `build_root.py` | `content/컴퓨팅사고_시작하기.ipynb` 생성. 새 주차는 `WEEKS` 목록에 추가 |
 
