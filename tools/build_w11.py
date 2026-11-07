@@ -13,9 +13,9 @@ import base64, hashlib, html, json, os, sys
 from site_common import INTRO_SITE
 
 DEST = r"D:\AI융합과학원\학교강의\컴퓨팅사고\강의자료"
-# _v2: 학생 브라우저는 같은 파일명을 다시 받지 않으므로(CLAUDE.md 8.3) 그림을 넣은 판은 이름을 바꿨다. _v3: 2-6 일급 시민 유래 상자 추가. _v4: 1-2 표준 출력 · 1-3 표준 입력 상자 추가. _v5: try/except 흐름 설명 다시 씀
-THINK_NB = "컴퓨팅사고_11주차_파일과예외_생각하기_v5.ipynb"
-SOLVE_NB = "컴퓨팅사고_11주차_파일과예외_풀이_v5.ipynb"
+# _v2: 학생 브라우저는 같은 파일명을 다시 받지 않으므로(CLAUDE.md 8.3) 그림을 넣은 판은 이름을 바꿨다. _v3: 2-6 일급 시민 유래 상자 추가. _v4: 1-2 표준 출력 · 1-3 표준 입력 상자 추가. _v5: try/except 흐름 설명 다시 씀. _v6: 1-3 repr 참고 상자
+THINK_NB = "컴퓨팅사고_11주차_파일과예외_생각하기_v6.ipynb"
+SOLVE_NB = "컴퓨팅사고_11주차_파일과예외_풀이_v6.ipynb"
 HW_SOL = "컴퓨팅사고_11주차_과제정답.ipynb"
 T, S, BOTH = "think", "solve", "both"
 
@@ -432,6 +432,17 @@ print(type(text), len(text), "글자")
 
 md('''
 파일의 내용은 **문자열 하나**입니다. 줄은 그 안의 `\\n` 으로 나뉘어 있을 뿐입니다. 4주차에서 본 `\\n` 이 파일에서는 ‘줄의 끝’이라는 뜻으로 쓰입니다.
+
+''' + fold("repr() — 값의 진짜 모습을 보여 주는 함수",
+    "`repr()` 은 값을 <b>Python 코드에 적힌 모양 그대로</b> 문자열로 돌려줍니다. 이름은 representation(표현)의 줄임입니다. `print()` 가 쓰는 `str()` 은 ‘사람이 읽기 좋게’, `repr()` 은 ‘있는 그대로, 애매하지 않게’가 목표입니다.<br>"
+    "<table style='border-collapse:collapse;margin:8px 0;'><tr><th style='border:1px solid #9CA3AF;padding:4px 10px;'>값</th><th style='border:1px solid #9CA3AF;padding:4px 10px;'>print(x)</th><th style='border:1px solid #9CA3AF;padding:4px 10px;'>print(repr(x))</th></tr>"
+    "<tr><td style='border:1px solid #9CA3AF;padding:4px 10px;'>`\"안녕\"`</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>안녕</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>'안녕' — 따옴표가 보임</td></tr>"
+    "<tr><td style='border:1px solid #9CA3AF;padding:4px 10px;'>`\"첫 줄\\n둘째 줄\"`</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>두 줄로 출력</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>'첫 줄\\n둘째 줄' — 줄바꿈이 글자로</td></tr>"
+    "<tr><td style='border:1px solid #9CA3AF;padding:4px 10px;'>`\"&nbsp;&nbsp;공백 \"`</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>&nbsp;&nbsp;공백&nbsp; (안 보임)</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>'&nbsp;&nbsp;공백 ' — 공백이 보임</td></tr>"
+    "<tr><td style='border:1px solid #9CA3AF;padding:4px 10px;'>`\"5\"` 와 `5`</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>둘 다 5</td><td style='border:1px solid #9CA3AF;padding:4px 10px;'>'5' 와 5 — 문자열과 숫자가 구별됨</td></tr></table>"
+    "<b>왜 파일 읽기에서 쓰는가.</b> 파일을 읽을 때 생기는 문제는 대부분 <b>보이지 않는 글자</b> 때문입니다. 줄 끝의 `\\n`, 뒤에 붙은 공백, 그리고 `\"90\"` 인지 `90` 인지. `print(line)` 으로는 안 보이지만 `print(repr(line))` 은 `'김민준,90\\n'` 처럼 보여 주니 ‘아, `\\n` 이 붙어 있어서 `int()` 가 실패했구나’를 바로 알 수 있습니다.<br>"
+    "<b>이미 보고 있었습니다.</b> 셀 마지막 줄에 변수 이름만 적으면 나오는 출력이 `repr` 입니다. 리스트를 출력하면 안의 문자열에 따옴표가 붙는 것도 원소마다 `repr` 을 쓰기 때문입니다. 오류 메시지 `invalid literal for int(): '90\\n'` 에 따옴표와 `\\n` 이 보이는 것도 `repr` 입니다. f-string 에서는 `f\"{line!r}\"` 로 같은 효과를 냅니다. 9주차의 클래스에 `__repr__` 을 정의하면 내 객체도 이렇게 보입니다.<br>"
+    "한 줄로: `print` 는 <b>보여 주는 것</b>, `repr` 은 <b>진짜 모습</b>을 보여 주는 것. 파일에서 읽은 값이 이상하면 먼저 `repr` 로 찍어 보세요.") + '''
 
 ''' + note("input() 도 사실은 read 입니다 — 표준 입력",
     "4주차부터 `input()` 으로 키보드 입력을 받았습니다. 그것도 파일에서 읽는 것이었습니다. 프로그램이 시작할 때 운영체제는 파일 세 개를 열어서 건네줍니다. <b>표준 입력</b>(standard input) `sys.stdin` 은 반대쪽에 <b>키보드</b>가, <b>표준 출력</b> `sys.stdout` 은 <b>화면</b>이, <b>표준 오류</b>(standard error) `sys.stderr` 는 역시 화면이 붙어 있되 오류 전용입니다. `input()` 은 `sys.stdin` 에서 한 줄을 읽고(`readline()`) 끝의 `\\n` 을 떼어(`strip()`) 돌려주는 함수입니다. 방금 `memo.txt` 를 한 줄씩 읽은 것과 같은 동작입니다. 노트북에서는 키보드 대신 셀 아래에 입력 칸이 뜨지만, 그 칸이 곧 표준 입력입니다.<br>"
