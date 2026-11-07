@@ -9,12 +9,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 #   풀이판:     문제 띠 · 🧠 풀이 상자 · 풀이 코드 · 정리 · 실습 정답
 # 사용: python build_w11.py           → 셀 구성만 점검(파일을 쓰지 않음)
 #       python build_w11.py --write   → 강의자료 폴더에 .ipynb 저장 (이미 있으면 중단)
-import hashlib, html, json, os, sys
+import base64, hashlib, html, json, os, sys
 from site_common import INTRO_SITE
 
 DEST = r"D:\AI융합과학원\학교강의\컴퓨팅사고\강의자료"
-THINK_NB = "컴퓨팅사고_11주차_파일과예외_생각하기.ipynb"
-SOLVE_NB = "컴퓨팅사고_11주차_파일과예외_풀이.ipynb"
+# _v2: 학생 브라우저는 같은 파일명을 다시 받지 않으므로(CLAUDE.md 8.3) 그림을 넣은 판은 이름을 바꿨다
+THINK_NB = "컴퓨팅사고_11주차_파일과예외_생각하기_v2.ipynb"
+SOLVE_NB = "컴퓨팅사고_11주차_파일과예외_풀이_v2.ipynb"
 HW_SOL = "컴퓨팅사고_11주차_과제정답.ipynb"
 T, S, BOTH = "think", "solve", "both"
 
@@ -84,6 +85,16 @@ def boom(text):
 def code_block(code):
     return ('<pre style="background:#1F2937;color:#F9FAFB;padding:14px 16px;border-radius:10px;font-family:Consolas,monospace;'
             f'line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;max-width:100%;">{html.escape(code.strip())}</pre>')
+
+
+def img_fig(filename, caption, max_width=760):
+    """강의자료 폴더의 PNG 를 base64 로 본문에 넣는다. 외부 파일 없이 어디서 열어도 보인다."""
+    with open(os.path.join(DEST, filename), "rb") as f:
+        data = base64.b64encode(f.read()).decode("ascii")
+    return (f'<div style="text-align:center;margin:10px 0;{BOX}">'
+            f'<img src="data:image/png;base64,{data}" alt="{html.escape(caption)}" '
+            f'style="max-width:min(100%,{max_width}px);height:auto;background:#FFFFFF;border-radius:8px;padding:6px;">'
+            f'<div style="color:#6B7280;font-size:0.9em;margin-top:4px;">{fmt(caption)}</div></div>')
 
 
 def period(n, title, goals):
@@ -292,7 +303,15 @@ md('''
 
 ## 1-2. 파일에 쓰기 — `open` · `write` · `close`
 
-파일을 다루는 일은 늘 세 단계입니다. **열고**, **읽거나 쓰고**, **닫습니다.** 냉장고와 같습니다. 문을 열고, 넣거나 꺼내고, 문을 닫습니다.
+파일을 다루는 일은 늘 세 단계입니다. **열고**, **읽거나 쓰고**, **닫습니다.** 왜 꼭 열어야 하고, 왜 꼭 닫아야 할까요? 그림으로 봅니다.
+
+''' + img_fig("컴퓨팅사고_11주차_파일_열고닫기.png", "파일을 열고 · 쓰고 · 닫는 세 단계. 프로그램(메모리)과 디스크의 파일은 떨어져 있어서, 그 사이에 <b>통로</b>가 있어야 오갈 수 있습니다.", max_width=720) + '''
+
+**① 열기 = 통로 만들기.** 프로그램은 메모리에 있고 파일은 디스크에 있습니다. 둘은 떨어져 있습니다. `open()` 은 그 사이에 **통로**를 놓고 이름표(`f`)를 붙입니다. 전화를 거는 것과 같습니다. 통화가 연결되어야 말을 주고받을 수 있듯, 통로가 있어야 읽고 쓸 수 있습니다. 그래서 읽든 쓰든 **먼저 열어야** 합니다.
+
+**② 쓰기 = 버퍼에 쌓기.** 디스크는 메모리보다 수천 배 느립니다. 그래서 `write()` 는 디스크에 바로 쓰지 않고 통로 안의 **버퍼**(buffer, 임시 바구니)에 모아 둡니다. 이 순간 디스크의 파일은 **아직 비어 있습니다.** 택배를 부치면 트럭이 바로 떠나지 않고 상자가 찰 때까지 기다리는 것과 같습니다.
+
+**③ 닫기 = 버퍼 비우고 통로 끊기.** `close()` 는 버퍼에 남은 것을 디스크로 **보내고**, 통로를 걷고, 이름표 `f` 를 쓸 수 없게 합니다. 그제야 파일에 내용이 있습니다. 닫지 않으면 두 가지 문제가 생깁니다. 버퍼에 남은 내용이 디스크에 **못 갈 수** 있고, 통로가 열려 있는 동안 다른 프로그램이 그 파일을 **못 열** 수 있습니다. 전화를 끊지 않으면 마지막 말이 전달됐는지 알 수 없고, 상대도 다른 전화를 못 받는 것과 같습니다.
 
 **예상해 보기** — `write` 는 무엇을 돌려줄까요? 그리고 출력에는 몇 줄이 보일까요?
 ''')
@@ -334,7 +353,22 @@ print(os.path.getsize("memo.txt"), "바이트")      # 파일 크기 (글자 수
 md('''
 ### `with` 문 — 닫는 것을 잊지 않게
 
-`close()` 를 잊으면 어떻게 될까요? 쓴 내용이 디스크에 **아직 안 갔을 수** 있습니다. Python 은 효율을 위해 쓸 내용을 잠시 모아 두었다가(버퍼) 닫을 때 한꺼번에 보냅니다. 닫지 않으면 마지막 내용이 사라질 수 있습니다. 냉장고 문을 안 닫은 것과 같습니다.
+그림의 ②를 직접 확인해 봅니다. 닫기 **전에** 파일 크기를 재면 몇 바이트일까요?
+
+**예상해 보기** — 두 `getsize` 는 각각 무엇을 출력할까요?
+''')
+
+code('''
+g = open("buffer_test.txt", "w", encoding="utf-8")
+g.write("아직 안 닫았습니다")
+print("닫기 전:", os.path.getsize("buffer_test.txt"), "바이트")     # 버퍼에만 있고 디스크에는 아직 없습니다
+
+g.close()
+print("닫은 뒤:", os.path.getsize("buffer_test.txt"), "바이트")     # close() 가 버퍼를 디스크로 보냈습니다
+''')
+
+md('''
+닫기 전에는 **0 바이트**입니다. `write()` 가 분명히 실행됐는데 디스크의 파일은 비어 있습니다. 내용은 버퍼에 있습니다. `close()` 뒤에야 디스크에 갑니다. `close()` 를 잊은 채 프로그램이 끝나면 Python 이 대개 대신 닫아 주지만, 프로그램이 도중에 죽거나 전원이 꺼지면 버퍼의 내용은 **영영 사라집니다.**
 
 그래서 Python 은 **블록이 끝나면 자동으로 닫아 주는** 문법을 만들었습니다. `with` 문입니다. 앞으로 파일은 **항상 이 모양**으로 엽니다.
 ''')
@@ -353,7 +387,7 @@ f.write("다섯째 줄\\n")          # with 블록 밖 — f 는 이미 닫혔�
 ''', raises=True)
 
 md('''
-`ValueError: I/O operation on closed file` — “닫힌 파일에 입출력을 하려 했다”는 안내입니다. 파일 작업은 **`with` 블록 안에서만** 합니다.
+`ValueError: I/O operation on closed file` — “닫힌 파일에 입출력을 하려 했다”는 안내입니다. 그림의 ③처럼 통로가 걷혀 이름표 `f` 로는 더 쓸 수 없습니다. 파일 작업은 **`with` 블록 안에서만** 합니다.
 
 ''' + key("파일 쓰기 정리", "① 파일 작업은 <b>열기 → 쓰기 → 닫기</b>. `with open(...) as f:` 로 열면 블록 끝에서 <b>자동으로 닫힙니다.</b><br>② 모드: `\"w\"` 는 지우고 새로, `\"a\"` 는 끝에 덧붙이기. 읽기는 `\"r\"` 이고 생략할 수 있습니다.<br>③ `write` 는 <b>문자열만</b> 받고 <b>줄바꿈을 넣지 않습니다.</b> 숫자는 f-string 으로, 줄 끝에는 `\\n` 을 직접.<br>④ `encoding=\"utf-8\"` 은 항상 적습니다 (1-4 에서 이유를 봅니다)."))
 
