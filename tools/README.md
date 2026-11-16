@@ -16,6 +16,9 @@
 | `build_w11.py` | 11주차(파일 입출력 · 예외 처리 · 일급 객체 · 데코레이터 · 타입 힌트, 2교시) 노트북 생성. `build_w10.py` 와 같은 T/S/BOTH 방식으로 **생각하기 판** · **풀이판** · 과제 정답 세 파일을 만든다. 1-5 · 2-5 · 2-9 의 데이터 셀(`scores.txt` 등)은 BOTH |
 | `draw_w11_file_io.py` | 11주차 1-2 그림(파일 열기 → 버퍼에 쓰기 → 닫기 세 단계)을 강의자료 폴더에 PNG 로 만든다. build_w11 이 base64 로 넣는다 |
 | `test_w11.py` | 11주차 검증. 파일을 만드는 셀이 많아 임시 폴더로 옮겨 실행한다. `-v` 로 출력 표시 |
+| `build_w12.py` | 12주차(인공지능 모델 개관 · 라이브러리 지도 · RNN 문서 분류, 2교시) 노트북 + 과제 정답 생성. 한 파일(실습 정답은 접힘). 뉴스 제목 160건(`NEWS`)과 numpy 로 만든 RNN 모듈(`MINIRNN`, `%%writefile minirnn.py` 셀)이 스크립트 안에 있다. 사이트(Pyodide)에 PyTorch 가 없어 RNN 을 numpy 로 만들었고, PyTorch · scikit-learn 판은 접은 상자 |
+| `draw_w12_rnn.py` | 12주차 그림 두 장(학습·추론 흐름, RNN 펼침)을 강의자료 폴더에 PNG 로 만든다. build_w12 가 base64 로 넣는다 |
+| `test_w12.py` | 12주차 검증. 임시 폴더에서 `%%writefile`(news.csv · minirnn.py) 셀을 파일로 쓰고 전체 셀을 빈 답안/정답으로 실행. `-v` 로 출력 표시 |
 | `strip_w10_p3.py` | 10주차 풀이판에서 3교시 풀이를 뺀 판을 같은 이름으로 `content/sol/` 에 덮어쓴다 (1·2교시 먼저 공개할 때) |
 | `draw_w10_bridges.py` | 10주차 문제 4 그림 두 장(쾨니히스베르크 지도 · 추상화한 그래프)을 강의자료 폴더에 PNG 로 만든다. build_w10 이 base64 로 넣는다 |
 | `site_convert_w45.py` | 4·5주차 Colab용 원본 → 사이트용 사본으로 변환해 `content/` 에 저장 |
