@@ -21,6 +21,7 @@
 | 경로 | 내용 |
 |:---|:---|
 | `content/` | 학생에게 배포하는 노트북 (`.ipynb`) |
+| `slides/` | 슬라이드 수업(1 · 2주차) 자료 (`.pptx`). 시작하기 노트북에서 링크 |
 | `jupyter_lite_config.json`, `jupyter-lite.json`, `overrides.json` | JupyterLite 빌드 설정 |
 | `.github/workflows/deploy.yml` | `main` 에 push 하면 자동으로 빌드 · 배포 |
 
