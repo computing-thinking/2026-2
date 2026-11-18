@@ -18,11 +18,11 @@ WEEKS = [  # (주차, 제목, 파일명, 부제)
     (12, "인공지능 라이브러리로 문서 분류 응용 만들기", "컴퓨팅사고_12주차_문서분류.ipynb", "모델 · 학습 · 추론 · 과적합 — 문서를 숫자로 — 인공지능 라이브러리 지도 — RNN 으로 뉴스 제목을 스포츠 · 경제 · 날씨 · 음식으로 분류 (2교시)"),
 ]
 
-SLIDES = [  # (주차, 파일명) — 저장소 slides/ 폴더
+SLIDES = [  # (주차, 파일명) — content/slides/ 폴더 (사이트 files/slides/ 로 배포)
     (1, "컴퓨팅사고_1주차_260901_H264.pptx"),
     (2, "컴퓨팅사고_2주차_260907.pptx"),
 ]
-slide_rows = "\n".join(f"| **{w}주차** | [{fn}](https://github.com/computing-thinking/2026-2/blob/main/slides/{fn}) |" for w, fn in SLIDES)
+slide_rows = "\n".join(f"| **{w}주차** | [{fn}]({SITE}/files/slides/{fn}) |" for w, fn in SLIDES)
 
 def link(fn):
     return f"{SITE}/notebooks/index.html?path={fn}"
@@ -49,7 +49,7 @@ md(f'''# 주차별 노트북
 
 1 ~ 3주차는 슬라이드 수업이라 노트북이 없고, 8주차는 중간고사입니다. 새 주차는 수업 전에 이 목록에 추가됩니다.
 
-**슬라이드 수업 자료** — 링크를 열면 GitHub 페이지가 나옵니다. 오른쪽 위 **Download** 버튼으로 내려받으세요.
+**슬라이드 수업 자료** — 링크를 누르면 파일이 내려받아집니다. 사이트의 `lab` 화면 왼쪽 파일 목록 `slides` 폴더에서도 볼 수 있습니다.
 
 | 주차 | 슬라이드 |
 |:---:|:---|
