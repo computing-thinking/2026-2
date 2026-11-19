@@ -21,6 +21,7 @@ WEEKS = [  # (주차, 제목, 파일명, 부제)
 SLIDES = [  # (주차, 파일명) — content/slides/ 폴더 (사이트 files/slides/ 로 배포)
     (1, "컴퓨팅사고_1주차_260901_H264.pptx"),
     (2, "컴퓨팅사고_2주차_260907.pptx"),
+    (12, "컴퓨팅사고_12주차_261118.pptx"),   # 1교시 AI 프로젝트 개관
 ]
 slide_rows = "\n".join(f"| **{w}주차** | [{fn}]({SITE}/files/slides/{fn}) |" for w, fn in SLIDES)
 
