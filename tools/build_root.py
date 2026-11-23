@@ -22,6 +22,7 @@ SLIDES = [  # (주차, 파일명) — content/slides/ 폴더 (사이트 files/sl
     (1, "컴퓨팅사고_1주차_260901_H264.pptx"),
     (2, "컴퓨팅사고_2주차_260907.pptx"),
     (12, "컴퓨팅사고_12주차_261118.pptx"),   # 1교시 AI 프로젝트 개관
+    (13, "컴퓨팅사고_13주차_261124.pptx"),   # 1교시 언어모델 + 2교시 AI 프로젝트 오리엔테이션
 ]
 slide_rows = "\n".join(f"| **{w}주차** | [{fn}]({SITE}/files/slides/{fn}) |" for w, fn in SLIDES)
 

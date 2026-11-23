@@ -18,6 +18,10 @@
 | `test_w11.py` | 11주차 검증. 파일을 만드는 셀이 많아 임시 폴더로 옮겨 실행한다. `-v` 로 출력 표시 |
 | `build_w12.py` | 12주차(인공지능 모델 개관 · 라이브러리 지도 · RNN 문서 분류, 2교시) 노트북 + 과제 정답 생성. 한 파일(실습 정답은 접힘). 뉴스 제목 160건(`NEWS`)과 numpy 로 만든 RNN 모듈(`MINIRNN`, `%%writefile minirnn.py` 셀)이 스크립트 안에 있다. 사이트(Pyodide)에 PyTorch 가 없어 RNN 을 numpy 로 만들었고, PyTorch · scikit-learn 판은 접은 상자 |
 | `draw_w12_rnn.py` | 12주차 그림 두 장(학습·추론 흐름, RNN 펼침)을 강의자료 폴더에 PNG 로 만든다. build_w12 가 base64 로 넣는다 |
+| `build_w12_slides.py` | 12주차 1교시 슬라이드(AI 프로젝트 개관) 생성. python-pptx. `python tools/build_w12_slides.py <출력.pptx> <설문QR.png>` |
+| `build_w13_slides.py` | 13주차 1교시 슬라이드(언어모델이란 무엇이며 어떻게 쓰이고 있나, 19장) 생성. `build_w12_slides.py` 를 복제. `python tools/build_w13_slides.py <출력.pptx>` → `강의자료\컴퓨팅사고_13주차_261124.pptx`. 렌더링 확인은 PowerPoint COM 으로 PNG 내보내기 |
+| `build_w13_orient_slides.py` | 13주차 2교시 슬라이드(AI 프로젝트 오리엔테이션, 22장) 생성. `build_w12_slides.py` 의 12주차 개관을 바탕으로 팀 배정 뒤 바뀐 것(남은 일정 · 7팀 결과 · 평가 25점 = 과제물 15 + 참여도 10, 개인 = 결과물 × 기여도 · 교수의 팀 배정 예제)을 반영. `python tools/build_w13_orient_slides.py <출력.pptx>` → `강의자료\컴퓨팅사고_13주차_261124_2교시.pptx` |
+| `build_w13_all.py` | 13주차 합본(1교시 언어모델 19장 + 2교시 오리엔테이션 25장 = 44장). 위 두 스크립트를 한 프레젠테이션에 차례로 실행하고 쪽번호를 다시 매긴다. `python tools/build_w13_all.py <출력.pptx>` → `강의자료\컴퓨팅사고_13주차_261124.pptx` |
 | `test_w12.py` | 12주차 검증. 임시 폴더에서 `%%writefile`(news.csv · minirnn.py) 셀을 파일로 쓰고 전체 셀을 빈 답안/정답으로 실행. `-v` 로 출력 표시 |
 | `strip_w10_p3.py` | 10주차 풀이판에서 3교시 풀이를 뺀 판을 같은 이름으로 `content/sol/` 에 덮어쓴다 (1·2교시 먼저 공개할 때) |
 | `draw_w10_bridges.py` | 10주차 문제 4 그림 두 장(쾨니히스베르크 지도 · 추상화한 그래프)을 강의자료 폴더에 PNG 로 만든다. build_w10 이 base64 로 넣는다 |
