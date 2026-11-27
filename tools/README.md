@@ -22,6 +22,8 @@
 | `build_w13_slides.py` | 13주차 1교시 슬라이드(언어모델이란 무엇이며 어떻게 쓰이고 있나, 19장) 생성. `build_w12_slides.py` 를 복제. `python tools/build_w13_slides.py <출력.pptx>` → `강의자료\컴퓨팅사고_13주차_261124.pptx`. 렌더링 확인은 PowerPoint COM 으로 PNG 내보내기 |
 | `build_w13_orient_slides.py` | 13주차 2교시 슬라이드(AI 프로젝트 오리엔테이션, 22장) 생성. `build_w12_slides.py` 의 12주차 개관을 바탕으로 팀 배정 뒤 바뀐 것(남은 일정 · 7팀 결과 · 평가 25점 = 과제물 15 + 참여도 10, 개인 = 결과물 × 기여도 · 교수의 팀 배정 예제)을 반영. `python tools/build_w13_orient_slides.py <출력.pptx>` → `강의자료\컴퓨팅사고_13주차_261124_2교시.pptx` |
 | `build_w13_all.py` | 13주차 합본(1교시 언어모델 19장 + 2교시 오리엔테이션 25장 = 44장). 위 두 스크립트를 한 프레젠테이션에 차례로 실행하고 쪽번호를 다시 매긴다. `python tools/build_w13_all.py <출력.pptx>` → `강의자료\컴퓨팅사고_13주차_261124.pptx` |
+| `build_w14_slides.py` | 14주차 1교시 슬라이드(AI 도구 지도 — 챗봇 · AI API · VS Code AI 코딩 · OpenClaw, 21장) 생성. `build_w13_slides.py` 의 도우미 함수를 복제. `python tools/build_w14_slides.py <출력.pptx>` → `강의자료\컴퓨팅사고_14주차_261201.pptx`. Gemini API 예제 코드와 모델 이름, OpenClaw 명령은 2026-11-24 공식 문서 기준 — 수업 전에 다시 확인 |
+| `build_project_slides_template.py` | AI 프로젝트 팀 발표용 공용 Google Slides 템플릿(회차별 pptx, 표지 1장 + 7팀 × 5장 = 36장). 드라이브에 올려 Google Slides로 열고 링크를 LearnUs 에 공지한다. `python tools/build_project_slides_template.py <출력폴더> [회차]` → `컴퓨팅사고\AI프로젝트\발표자료\AI프로젝트_발표자료_N회차.pptx` (강의자료의 형제 폴더) |
 | `test_w12.py` | 12주차 검증. 임시 폴더에서 `%%writefile`(news.csv · minirnn.py) 셀을 파일로 쓰고 전체 셀을 빈 답안/정답으로 실행. `-v` 로 출력 표시 |
 | `strip_w10_p3.py` | 10주차 풀이판에서 3교시 풀이를 뺀 판을 같은 이름으로 `content/sol/` 에 덮어쓴다 (1·2교시 먼저 공개할 때) |
 | `draw_w10_bridges.py` | 10주차 문제 4 그림 두 장(쾨니히스베르크 지도 · 추상화한 그래프)을 강의자료 폴더에 PNG 로 만든다. build_w10 이 base64 로 넣는다 |
